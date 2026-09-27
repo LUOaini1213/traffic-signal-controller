@@ -10,34 +10,44 @@ Means over seeds with 95 % t-intervals. Measurement window 300-3600 s; delay = S
 |---|---|---|---|---|---|---|---|
 | low | 300 | Fixed-time (Webster) | 22.5 [22.2, 22.9] | 5.4 [5.0, 5.8] | 1178 [1146, 1209] | - | - |
 | low | 300 | Actuated (this repo) | 18.9 [18.5, 19.4] | 5.0 [5.0, 5.0] | 1178 [1148, 1207] | 251 | 0 |
-| low | 300 | SUMO actuated (reference) | 21.7 [21.2, 22.3] | 5.0 [5.0, 5.0] | 1175 [1145, 1206] | 237 | 0 |
-| medium | 600 | Fixed-time (Webster) | 26.1 [25.7, 26.4] | 9.9 [9.7, 10.1] | 2393 [2367, 2419] | - | - |
+| low | 300 | SUMO actuated, call-based skip | 19.2 [18.7, 19.8] | 5.0 [5.0, 5.0] | 1178 [1148, 1207] | 254 | 0 |
+| low | 300 | SUMO actuated, no skip | 22.0 [21.7, 22.3] | 5.2 [4.9, 5.5] | 1178 [1147, 1209] | 263 | 0 |
+| medium | 600 | Fixed-time (Webster) | 26.3 [26.0, 26.6] | 10.0 [9.7, 10.3] | 2397 [2371, 2423] | - | - |
 | medium | 600 | Actuated (this repo) | 25.5 [24.9, 26.0] | 10.5 [10.1, 10.9] | 2396 [2372, 2420] | 226 | 0 |
-| medium | 600 | SUMO actuated (reference) | 29.6 [28.9, 30.3] | 11.5 [10.9, 12.1] | 2390 [2368, 2412] | 193 | 4 |
-| high | 1200 | Fixed-time (Webster) | 53.1 [51.1, 55.0] | 36.7 [33.9, 39.5] | 4768 [4723, 4812] | - | - |
-| high | 1200 | Actuated (this repo) | 53.5 [52.1, 54.8] | 38.1 [36.7, 39.5] | 4774 [4732, 4816] | 55 | 49 |
-| high | 1200 | SUMO actuated (reference) | 61.0 [57.7, 64.3] | 40.5 [37.6, 43.4] | 4768 [4726, 4810] | 40 | 59 |
-| asymmetric | 1100/300 | Fixed-time (Webster) | 30.2 [29.1, 31.3] | 16.3 [15.5, 17.1] | 2793 [2747, 2839] | - | - |
-| asymmetric | 1100/300 | Actuated (this repo) | 26.4 [25.9, 27.0] | 14.1 [13.5, 14.7] | 2794 [2744, 2844] | 181 | 6 |
-| asymmetric | 1100/300 | SUMO actuated (reference) | 30.3 [29.0, 31.7] | 15.0 [14.2, 15.8] | 2795 [2750, 2841] | 159 | 13 |
-| saturated | 1600 | Fixed-time (Webster) | 330.4 [313.8, 347.0] | 158.4 [154.6, 162.2] | 5606 [5583, 5630] | - | - |
+| medium | 600 | SUMO actuated, call-based skip | 25.1 [24.7, 25.5] | 10.0 [10.0, 10.0] | 2397 [2373, 2420] | 232 | 0 |
+| medium | 600 | SUMO actuated, no skip | 25.7 [25.4, 25.9] | 10.1 [9.9, 10.3] | 2398 [2374, 2422] | 232 | 0 |
+| high | 1200 | Fixed-time (Webster) | 52.8 [51.8, 53.9] | 36.0 [33.8, 38.2] | 4763 [4718, 4808] | - | - |
+| high | 1200 | Actuated (this repo) | 53.5 [52.1, 54.8] | 38.1 [36.7, 39.5] | 4774 [4732, 4816] | 57 | 48 |
+| high | 1200 | SUMO actuated, call-based skip | 52.7 [51.2, 54.2] | 37.5 [36.3, 38.7] | 4773 [4723, 4823] | 65 | 43 |
+| high | 1200 | SUMO actuated, no skip | 52.7 [51.2, 54.2] | 37.5 [36.3, 38.7] | 4773 [4723, 4823] | 65 | 43 |
+| asymmetric | 1100/300 | Fixed-time (Webster) | 30.0 [29.2, 30.8] | 16.2 [15.5, 16.9] | 2794 [2746, 2841] | - | - |
+| asymmetric | 1100/300 | Actuated (this repo) | 26.4 [25.9, 27.0] | 14.1 [13.5, 14.7] | 2794 [2744, 2844] | 182 | 6 |
+| asymmetric | 1100/300 | SUMO actuated, call-based skip | 26.3 [25.9, 26.8] | 14.4 [13.9, 14.9] | 2795 [2747, 2844] | 188 | 4 |
+| asymmetric | 1100/300 | SUMO actuated, no skip | 27.4 [27.1, 27.8] | 14.9 [14.5, 15.3] | 2795 [2748, 2842] | 193 | 4 |
+| saturated | 1600 | Fixed-time (Webster) | 303.2 [288.9, 317.5] | 160.8 [156.8, 164.8] | 5690 [5665, 5715] | - | - |
 | saturated | 1600 | Actuated (this repo) | 395.2 [376.2, 414.2] | 150.2 [148.6, 151.8] | 5388 [5362, 5413] | 6 | 91 |
-| saturated | 1600 | SUMO actuated (reference) | 214.7 [199.3, 230.1] | 147.7 [140.6, 154.8] | 5954 [5938, 5970] | 0 | 89 |
+| saturated | 1600 | SUMO actuated, call-based skip | 390.5 [369.8, 411.2] | 150.9 [149.0, 152.8] | 5399 [5373, 5424] | 5 | 92 |
+| saturated | 1600 | SUMO actuated, no skip | 390.7 [370.0, 411.4] | 150.9 [149.0, 152.8] | 5399 [5373, 5424] | 5 | 92 |
 
 ### Paired differences (actuated minus the other controller, same seeds)
 
 | Scenario | vs | Delay diff (s/veh) | Delay diff (%) | p95 queue diff (veh) | Throughput diff (veh/h) | Delay verdict |
 |---|---|---|---|---|---|---|
 | low | Fixed-time (Webster) | -3.6 [-3.9, -3.3] | -16.0 | -0.4 [-0.8, -0.0] | 0 [-4, 5] | actuated better |
-| low | SUMO actuated (reference) | -2.8 [-3.3, -2.3] | -12.9 | 0.0 [0.0, 0.0] | 2 [-1, 6] | actuated better |
-| medium | Fixed-time (Webster) | -0.6 [-1.2, -0.1] | -2.4 | 0.6 [0.2, 1.0] | 3 [-2, 8] | actuated better |
-| medium | SUMO actuated (reference) | -4.1 [-4.8, -3.5] | -14.0 | -1.0 [-1.6, -0.4] | 6 [-1, 13] | actuated better |
-| high | Fixed-time (Webster) | 0.4 [-0.9, 1.7] | +0.7 | 1.4 [-0.8, 3.6] | 6 [-3, 15] | no clear difference |
-| high | SUMO actuated (reference) | -7.6 [-10.1, -5.0] | -12.4 | -2.4 [-5.5, 0.7] | 6 [-7, 20] | actuated better |
-| asymmetric | Fixed-time (Webster) | -3.8 [-4.5, -3.1] | -12.4 | -2.2 [-2.8, -1.6] | 1 [-4, 6] | actuated better |
-| asymmetric | SUMO actuated (reference) | -3.9 [-4.8, -3.0] | -12.8 | -0.9 [-1.4, -0.4] | -2 [-16, 12] | actuated better |
-| saturated | Fixed-time (Webster) | 64.8 [57.1, 72.5] | +19.6 | -8.2 [-10.9, -5.5] | -219 [-236, -201] | actuated WORSE |
-| saturated | SUMO actuated (reference) | 180.5 [169.2, 191.8] | +84.1 | 2.5 [-4.5, 9.5] | -566 [-600, -533] | actuated WORSE |
+| low | SUMO actuated, call-based skip | -0.3 [-0.7, 0.2] | -1.5 | 0.0 [0.0, 0.0] | 0 [-2, 2] | no clear difference |
+| low | SUMO actuated, no skip | -3.1 [-3.4, -2.7] | -13.9 | -0.2 [-0.5, 0.1] | -0 [-3, 3] | actuated better |
+| medium | Fixed-time (Webster) | -0.9 [-1.2, -0.6] | -3.4 | 0.5 [0.1, 0.9] | -1 [-6, 4] | actuated better |
+| medium | SUMO actuated, call-based skip | 0.3 [-0.0, 0.7] | +1.3 | 0.5 [0.1, 0.9] | -1 [-6, 4] | no clear difference |
+| medium | SUMO actuated, no skip | -0.2 [-0.7, 0.3] | -0.9 | 0.4 [0.0, 0.8] | -2 [-7, 3] | no clear difference |
+| high | Fixed-time (Webster) | 0.6 [-0.6, 1.8] | +1.2 | 2.1 [0.5, 3.7] | 11 [-2, 23] | no clear difference |
+| high | SUMO actuated, call-based skip | 0.7 [-0.1, 1.6] | +1.4 | 0.6 [-0.6, 1.8] | 1 [-15, 16] | no clear difference |
+| high | SUMO actuated, no skip | 0.7 [-0.1, 1.6] | +1.4 | 0.6 [-0.6, 1.8] | 1 [-15, 16] | no clear difference |
+| asymmetric | Fixed-time (Webster) | -3.6 [-4.1, -3.1] | -11.9 | -2.1 [-2.8, -1.4] | 0 [-6, 6] | actuated better |
+| asymmetric | SUMO actuated, call-based skip | 0.1 [-0.1, 0.4] | +0.4 | -0.3 [-0.8, 0.2] | -2 [-5, 2] | no clear difference |
+| asymmetric | SUMO actuated, no skip | -1.0 [-1.4, -0.5] | -3.6 | -0.8 [-1.4, -0.2] | -1 [-8, 5] | actuated better |
+| saturated | Fixed-time (Webster) | 92.0 [83.9, 100.1] | +30.3 | -10.6 [-13.4, -7.8] | -302 [-323, -281] | actuated WORSE |
+| saturated | SUMO actuated, call-based skip | 4.7 [-1.6, 11.0] | +1.2 | -0.7 [-1.5, 0.1] | -11 [-34, 12] | no clear difference |
+| saturated | SUMO actuated, no skip | 4.4 [-1.8, 10.7] | +1.1 | -0.7 [-1.5, 0.1] | -11 [-34, 12] | no clear difference |
 
 ### Delay by movement type
 
@@ -47,29 +57,36 @@ Mean delay of through traffic (with near-side turns) and of turn-across traffic,
 |---|---|---|---|
 | low | Fixed-time (Webster) | 22.1 [21.8, 22.4] | 24.9 [24.0, 25.8] |
 | low | Actuated (this repo) | 18.2 [17.8, 18.6] | 23.1 [22.3, 24.0] |
-| low | SUMO actuated (reference) | 13.9 [13.7, 14.1] | 67.0 [63.4, 70.5] |
-| medium | Fixed-time (Webster) | 25.1 [24.8, 25.4] | 31.4 [30.3, 32.5] |
+| low | SUMO actuated, call-based skip | 18.5 [18.0, 19.0] | 23.3 [22.7, 23.9] |
+| low | SUMO actuated, no skip | 21.5 [21.2, 21.8] | 24.8 [23.9, 25.7] |
+| medium | Fixed-time (Webster) | 25.2 [24.9, 25.5] | 32.6 [31.8, 33.3] |
 | medium | Actuated (this repo) | 24.3 [23.9, 24.7] | 32.0 [30.8, 33.2] |
-| medium | SUMO actuated (reference) | 18.8 [18.5, 19.2] | 90.4 [88.4, 92.5] |
-| high | Fixed-time (Webster) | 49.3 [47.4, 51.1] | 73.2 [67.1, 79.2] |
+| medium | SUMO actuated, call-based skip | 24.1 [23.8, 24.4] | 30.9 [30.1, 31.8] |
+| medium | SUMO actuated, no skip | 24.7 [24.5, 25.0] | 30.9 [29.7, 32.1] |
+| high | Fixed-time (Webster) | 48.0 [46.8, 49.2] | 78.9 [72.3, 85.6] |
 | high | Actuated (this repo) | 51.1 [49.6, 52.7] | 66.6 [65.0, 68.1] |
-| high | SUMO actuated (reference) | 42.2 [40.9, 43.4] | 165.5 [150.2, 180.9] |
-| asymmetric | Fixed-time (Webster) | 28.1 [27.5, 28.7] | 40.8 [37.7, 43.9] |
+| high | SUMO actuated, call-based skip | 50.3 [48.8, 51.7] | 66.6 [64.2, 69.0] |
+| high | SUMO actuated, no skip | 50.3 [48.8, 51.7] | 66.6 [64.2, 69.0] |
+| asymmetric | Fixed-time (Webster) | 28.3 [27.8, 28.8] | 43.6 [40.7, 46.5] |
 | asymmetric | Actuated (this repo) | 27.3 [26.5, 28.1] | 37.2 [35.8, 38.6] |
-| asymmetric | SUMO actuated (reference) | 21.2 [20.8, 21.7] | 94.5 [89.2, 99.8] |
-| saturated | Fixed-time (Webster) | 343.5 [324.7, 362.4] | 240.8 [212.0, 269.6] |
+| asymmetric | SUMO actuated, call-based skip | 26.7 [26.1, 27.3] | 36.1 [34.5, 37.8] |
+| asymmetric | SUMO actuated, no skip | 28.1 [27.5, 28.6] | 36.0 [35.1, 36.9] |
+| saturated | Fixed-time (Webster) | 301.5 [285.6, 317.5] | 297.3 [260.3, 334.4] |
 | saturated | Actuated (this repo) | 441.0 [418.8, 463.1] | 124.8 [111.9, 137.8] |
-| saturated | SUMO actuated (reference) | 147.3 [134.5, 160.1] | 586.7 [538.6, 634.8] |
+| saturated | SUMO actuated, call-based skip | 435.4 [410.9, 459.9] | 124.8 [109.1, 140.5] |
+| saturated | SUMO actuated, no skip | 435.7 [411.2, 460.2] | 124.8 [109.1, 140.5] |
 
 ### Webster plans used by the fixed-time controller
 
-| Scenario | Y | C0 (s) | Cycle used (s) | Greens (s) |
-|---|---|---|---|---|
-| low | 0.17 | 42 | 52 | EW_right 6, EW_through 10, NS_right 6, NS_through 10 |
-| medium | 0.34 | 53 | 56 | EW_right 6, EW_through 12, NS_right 6, NS_through 12 |
-| high | 0.67 | 108 | 108 | EW_right 12.5, EW_through 31.5, NS_right 12.5, NS_through 31.5 |
-| asymmetric | 0.39 | 58 | 66 | EW_right 6, EW_through 10, NS_right 8.5, NS_through 21.5 |
-| saturated | 0.90 | 347 | 150 (clamped) | EW_right 18, EW_through 47, NS_right 18, NS_through 47 |
+C0 is Webster's optimum cycle. Where the minimum greens need a longer cycle than C0, the plan is "Webster, bounded by minimum greens"; where C0 exceeds the 150 s limit it is clamped.
+
+| Scenario | Y | C0 (s) | Cycle used (s) | Cycle set by | Greens (s) |
+|---|---|---|---|---|---|
+| low | 0.17 | 42 | 52 | Webster, bounded by minimum greens | EW_right 6, EW_through 10, NS_right 6, NS_through 10 |
+| medium | 0.35 | 54 | 57 | Webster, bounded by minimum greens | EW_right 6, EW_through 12.5, NS_right 6, NS_through 12.5 |
+| high | 0.70 | 116 | 116 | Webster | EW_right 13, EW_through 35, NS_right 13, NS_through 35 |
+| asymmetric | 0.41 | 59 | 67 | Webster, bounded by minimum greens | EW_right 6, EW_through 10, NS_right 8.5, NS_through 22.5 |
+| saturated | 0.93 | 519 | 150 | clamped to the 150 s maximum | EW_right 17.5, EW_through 47.5, NS_right 17.5, NS_through 47.5 |
 
 ## Ablation: stop-bar loops that extend the green
 
@@ -91,17 +108,20 @@ Violations found by the independent auditor in the signal states SUMO actually d
 |---|---|---|---|---|
 | Fixed-time (Webster) | 50 | 0 | 0 | 0 |
 | Actuated (this repo) | 130 | 0 | 0 | 0 |
-| SUMO actuated (reference) | 50 | 0 | n/a | n/a |
+| SUMO actuated, call-based skip | 50 | 0 | n/a | n/a |
+| SUMO actuated, no skip | 50 | 0 | n/a | n/a |
 
 ## Detector fault: all four north-south turn-across loops stuck off from 600 s (medium demand)
 
 Fault threshold `stuck_off_s` = 900 s, fallback recall = `max`. Turn-across movements N->W and S->E (groups N_R, S_R) are the ones served by the faulty loops.
 
-| Variant | Mean delay, all vehicles (s) | Mean delay, N_R + S_R (s) | Vehicles unfinished at end | Fault declared at (s) |
-|---|---|---|---|---|
-| no_fault | 25.5 [24.9, 26.0] | 31.5 [30.4, 32.6] | 0 | - |
-| fault_handling_off | 333.2 [325.2, 341.2] | 4801.6 [4634.4, 4968.9] | 1529 | - |
-| fault_handling_on | 38.9 [37.0, 40.8] | 155.6 [131.7, 179.6] | 0 | 1349.5 to 1500 |
+Vehicles still in the network when a run is cut off at the hard stop carry only the delay accumulated until then, and vehicles never inserted are counted with delay = hard stop - planned departure; where either occurs the mean is a lower bound, marked ">=".
+
+| Variant | Mean delay, all vehicles (s) | Mean delay, N_R + S_R (s) | Vehicles unfinished at end | Vehicles never inserted (in window) | Fault declared at (s) |
+|---|---|---|---|---|---|
+| no_fault | 25.5 [24.9, 26.0] | 31.5 [30.4, 32.6] | 0 | 0 (0) | - |
+| fault_handling_off | >= 372.2 [346.6, 397.8] | >= 4669.8 [4551.7, 4787.9] | 1529 | 238 (238) | - |
+| fault_handling_on | 38.9 [37.0, 40.8] | 155.6 [131.7, 179.6] | 0 | 0 (0) | 1349.5 to 1500 |
 
 NS_right greens started per 300 s bin (mean over seeds; bins start at 0 s):
 

@@ -1,9 +1,14 @@
 {
-  "through_vphpl": 2101,
-  "through_median_headway_s": 1.7133025000914444,
-  "through_headways_measured": 256,
-  "turn_across_vphpl": 1905,
-  "turn_across_median_headway_s": 1.8894291535181935,
+  "shared_lane0_vphpl": 1929,
+  "shared_lane0_median_headway_s": 1.8663151444456219,
+  "shared_lane0_headways_measured": 524,
+  "through_vphpl": 2070,
+  "through_median_headway_s": 1.7388728805010345,
+  "through_headways_measured": 576,
+  "turn_across_vphpl": 1901,
+  "turn_across_median_headway_s": 1.8941695198470256,
   "turn_across_headways_measured": 350,
-  "method": "median discharge headway from the 5th queued vehicle onwards, 10 seeds, step 0.5 s"
+  "through_group_vphpl": 2000,
+  "lane0_turn_share_assumed": 0.3,
+  "method": "median discharge headway from the 5th queued vehicle onwards, 10 seeds, step 0.5 s; through group = mean of lane 0 (30 % near-side turners, assumed) and lane 1 (through only)"
 }
