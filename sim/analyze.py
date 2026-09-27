@@ -18,8 +18,9 @@ from common import CONFIG, RESULTS, SCENARIOS, WARMUP_S, DEMAND_END_S
 T95 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262,
        10: 2.228, 11: 2.201, 12: 2.179, 13: 2.160, 14: 2.145, 15: 2.131, 16: 2.120, 17: 2.110,
        18: 2.101, 19: 2.093, 20: 2.086, 25: 2.060, 30: 2.042}
-CONTROLLERS = ["fixed", "actuated", "sumo"]
-LABEL = {"fixed": "Fixed-time (Webster)", "actuated": "Actuated (this repo)", "sumo": "SUMO actuated (reference)"}
+CONTROLLERS = ["fixed", "actuated", "sumo", "sumo_noskip"]
+LABEL = {"fixed": "Fixed-time (Webster)", "actuated": "Actuated (this repo)",
+         "sumo": "SUMO actuated, call-based skip", "sumo_noskip": "SUMO actuated, no skip"}
 
 
 def t_crit(df: int) -> float:
@@ -56,8 +57,10 @@ METRICS = {
 }
 
 
-def fmt(c: dict, digits: int = 1) -> str:
-    return f"{c['mean']:.{digits}f} [{c['lo']:.{digits}f}, {c['hi']:.{digits}f}]"
+def fmt(c: dict, digits: int = 1, lower_bound: bool = False) -> str:
+    """Mean [95 % CI]; prefixed with ">=" when some vehicles had not finished (a lower bound)."""
+    ge = ">= " if lower_bound else ""
+    return f"{ge}{c['mean']:.{digits}f} [{c['lo']:.{digits}f}, {c['hi']:.{digits}f}]"
 
 
 def verdict(diff: dict, lower_is_better: bool = True) -> str:
@@ -105,12 +108,14 @@ def main() -> None:
             stats["delay_through_s"] = ci([statistics.fmean([r["mean_delay_by_group_s"][g] for g in groups if g.endswith("_T")]) for r in rows[c]])
             stats["delay_turn_across_s"] = ci([statistics.fmean([r["mean_delay_by_group_s"][g] for g in groups if g.endswith("_R")]) for r in rows[c]])
             stats["never_inserted_total"] = sum(r["vehicles_never_inserted"] for r in rows[c])
+            stats["delay_is_lower_bound"] = any(r["delay_is_lower_bound"] for r in rows[c])
             s_out["controllers"][c] = stats
             go = "-" if c == "fixed" else f"{stats['gap_outs_per_h']['mean']:.0f}"
             mo = "-" if c == "fixed" else f"{stats['max_outs_per_h']['mean']:.0f}"
-            md.append(f"| {scen} | {demand} | {LABEL[c]} | {fmt(stats['mean_delay_s'])} | {fmt(stats['queue_p95_veh'])} | "
+            md.append(f"| {scen} | {demand} | {LABEL[c]} | {fmt(stats['mean_delay_s'], lower_bound=stats['delay_is_lower_bound'])} | "
+                      f"{fmt(stats['queue_p95_veh'])} | "
                       f"{fmt(stats['throughput_vph'], 0)} | {go} | {mo} |")
-        for other in ("fixed", "sumo"):
+        for other in ("fixed", "sumo", "sumo_noskip"):
             if len(rows[other]) != len(rows["actuated"]):
                 continue
             assert [r["seed"] for r in rows[other]] == [r["seed"] for r in rows["actuated"]]
@@ -140,14 +145,23 @@ def main() -> None:
             md.append(f"| {scen} | {LABEL[c]} | {fmt(st['delay_through_s'])} | {fmt(st['delay_turn_across_s'])} |")
 
     md.append("\n### Webster plans used by the fixed-time controller\n")
-    md.append("| Scenario | Y | C0 (s) | Cycle used (s) | Greens (s) |")
-    md.append("|---|---|---|---|---|")
+    md.append("C0 is Webster's optimum cycle. Where the minimum greens need a longer cycle than C0, the plan is "
+              "\"Webster, bounded by minimum greens\"; where C0 exceeds the 150 s limit it is clamped.\n")
+    md.append("| Scenario | Y | C0 (s) | Cycle used (s) | Cycle set by | Greens (s) |")
+    md.append("|---|---|---|---|---|---|")
     for scen, s_out in out["scenarios"].items():
         w = s_out.get("webster")
         if w:
             c0 = "inf" if w["optimal_cycle_s"] is None else f"{w['optimal_cycle_s']:.0f}"
             greens = ", ".join(f"{k} {v:g}" for k, v in w["green_s"].items())
-            md.append(f"| {scen} | {w['Y']:.2f} | {c0} | {w['cycle_s']:g}{' (clamped)' if w['clamped'] else ''} | {greens} |")
+            if w["clamped"] and w["optimal_cycle_s"] is None or w["clamped"] and w["cycle_s"] < w["optimal_cycle_s"]:
+                basis = "clamped to the 150 s maximum"
+            elif w["optimal_cycle_s"] is not None and w["cycle_s"] > w["optimal_cycle_s"] + 1.0:
+                basis = "Webster, bounded by minimum greens"
+            else:
+                basis = "Webster"
+            w["cycle_basis"] = basis
+            md.append(f"| {scen} | {w['Y']:.2f} | {c0} | {w['cycle_s']:g} | {basis} | {greens} |")
 
     # ---------------------------------------------------------------- stop-bar ablation
     if ablation:
@@ -180,8 +194,8 @@ def main() -> None:
             continue
         s = {"runs": len(rs), "auditor_violations": sum(r["invariant_violations"] for r in rs),
              "inconsistent_group_states": sum(r["inconsistent_group_states"] for r in rs),
-             "guard_refusals": sum(r.get("guard_refusals", 0) for r in rs) if c != "sumo" else None,
-             "failsafe_runs": sum(bool(r.get("failsafe")) for r in rs) if c != "sumo" else None}
+             "guard_refusals": sum(r.get("guard_refusals", 0) for r in rs) if not c.startswith("sumo") else None,
+             "failsafe_runs": sum(bool(r.get("failsafe")) for r in rs) if not c.startswith("sumo") else None}
         out["safety"][c] = s
         na = lambda v: "n/a" if v is None else str(v)  # noqa: E731
         md.append(f"| {LABEL[c]} | {s['runs']} | {s['auditor_violations']} | {na(s['guard_refusals'])} | {na(s['failsafe_runs'])} |")
@@ -192,8 +206,12 @@ def main() -> None:
         stuck_off = cfg["faults"]["stuck_off_s"]
         md.append(f"Fault threshold `stuck_off_s` = {stuck_off} s, fallback recall = `{cfg['faults']['fallback_recall']}`. "
                   "Turn-across movements N->W and S->E (groups N_R, S_R) are the ones served by the faulty loops.\n")
-        md.append("| Variant | Mean delay, all vehicles (s) | Mean delay, N_R + S_R (s) | Vehicles unfinished at end | Fault declared at (s) |")
-        md.append("|---|---|---|---|---|")
+        md.append("Vehicles still in the network when a run is cut off at the hard stop carry only the delay accumulated "
+                  "until then, and vehicles never inserted are counted with delay = hard stop - planned departure; "
+                  "where either occurs the mean is a lower bound, marked \">=\".\n")
+        md.append("| Variant | Mean delay, all vehicles (s) | Mean delay, N_R + S_R (s) | Vehicles unfinished at end | "
+                  "Vehicles never inserted (in window) | Fault declared at (s) |")
+        md.append("|---|---|---|---|---|---|")
         for variant in ("no_fault", "fault_handling_off", "fault_handling_on"):
             rs = sorted((r for r in fault if r["variant"] == variant), key=lambda r: r["seed"])
             if not rs:
@@ -204,12 +222,17 @@ def main() -> None:
                     for i in range(len(rs[0]["greens_started_per_300s"]["NS_right"]))]
             v = {"runs": len(rs), "mean_delay_s": ci([r["mean_delay_s"] for r in rs]), "turn_across_ns_delay_s": ci(turn),
                  "unfinished_total": sum(r["unfinished_vehicles"] for r in rs), "fault_declared_at_s": declared,
+                 "never_inserted_total": sum(r["vehicles_never_inserted"] for r in rs),
+                 "never_inserted_in_window_total": sum(r["vehicles_never_inserted_in_window"] for r in rs),
+                 "delay_is_lower_bound": any(r["delay_is_lower_bound"] for r in rs),
                  "faults_declared": sorted({(f["detector"], f["kind"]) for r in rs for f in r.get("faults_declared", [])}),
                  "ns_right_greens_per_300s_mean": bins,
                  "sim_end_s_max": max(r["sim_end_s"] for r in rs)}
             out["fault"][variant] = v
             when = f"{min(declared):g} to {max(declared):g}" if declared else "-"
-            md.append(f"| {variant} | {fmt(v['mean_delay_s'])} | {fmt(v['turn_across_ns_delay_s'])} | {v['unfinished_total']} | {when} |")
+            lb = v["delay_is_lower_bound"]
+            md.append(f"| {variant} | {fmt(v['mean_delay_s'], lower_bound=lb)} | {fmt(v['turn_across_ns_delay_s'], lower_bound=lb)} | "
+                      f"{v['unfinished_total']} | {v['never_inserted_total']} ({v['never_inserted_in_window_total']}) | {when} |")
         md.append("\nNS_right greens started per 300 s bin (mean over seeds; bins start at 0 s):\n")
         md.append("| Variant | " + " | ".join(f"{300 * i}" for i in range(13)) + " |")
         md.append("|---|" + "---|" * 13)

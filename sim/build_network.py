@@ -1,7 +1,8 @@
 """Build the single four-arm junction with netconvert, plus the loop detectors and SUMO's own
 actuated programme (the reference controller), all derived from configs/intersection.json.
 
-Outputs (sim/generated/): junction.net.xml, detectors.add.xml, sumo_actuated.add.xml,
+Outputs (sim/generated/): junction.net.xml, detectors.add.xml, sumo_actuated.add.xml and
+sumo_actuated_noskip.add.xml (the two variants of the reference controller),
 link_groups.json (which signal group each SUMO link index belongs to).
 """
 from __future__ import annotations
@@ -73,42 +74,84 @@ def write_detectors(cfg: dict, net_path) -> None:
         f.write("</additional>\n")
 
 
-def write_sumo_actuated(cfg: dict, groups_per_link: list[str]) -> None:
-    """SUMO's built-in actuated controller with the same phases, min/max greens and clearances.
+# SUMO programmes for the reference controller, one file per variant (same programID, so the
+# harness loads whichever file it is given).
+SUMO_PROGRAMS = {"sumo": "sumo_actuated.add.xml", "sumo_noskip": "sumo_actuated_noskip.add.xml"}
 
-    Phase skipping uses SUMO's `next` attribute: after each clearance the controller may go to
-    the protected-turn phase or skip straight to the following through phase.
+
+def write_sumo_actuated(cfg: dict, groups_per_link: list[str], skip: bool) -> str:
+    """SUMO's built-in actuated controller (type="actuated", SUMO 1.18) set up like ours.
+
+    Both variants use the same detectors, the same per-phase gap and the same min/max greens
+    and clearances as configs/intersection.json:
+      * gap control: SUMO allows one loop per lane; each approach lane is given our 30 m
+        advance loop as its custom detector (<param key=LANE value=LOOP>), and that lane's
+        max-gap is the passage time of the loop's phase (3.0 s through, 2.5 s turn-across);
+      * skip (variant "sumo"): after each clearance a phase without recall is served only if it
+        has a call, decided with SUMO's switching rules (finalTarget on the phase). A call is the
+        same as ours: any loop of the phase, including the call-only stop-bar loops, detected a
+        vehicle since that phase's green ended (z:LOOP < r:LINK + yellow), or is occupied now.
+        SUMO's default choice between several `next` phases compares summed detector
+        priorities instead, which skips a turn phase whenever the through phase has more active
+        loops, and it has no stop-bar loops;
+      * no skip (variant "sumo_noskip"): every phase is served in order every cycle, for at
+        least its min green.
     """
     def state(green: set[str], letter: str) -> str:
         return "".join(letter if g in green else "r" for g in groups_per_link)
 
     phases = cfg["phases"]
+    names = [p["name"] for p in phases]
     n = len(phases)
+    dets = cfg["detectors"]
+    lanes = cfg["sumo"]["detector_lanes"]
+
+    def call_condition(i: int) -> str:
+        p = phases[i]
+        link = next(k for k, g in enumerate(groups_per_link) if g in p["groups"])
+        yellow = p["yellow_s"]
+        terms = [f"(z:{d['id']} < r:{link} + {yellow})" for d in dets if d["phase"] == p["name"]]
+        return " or ".join(terms).replace("<", "&lt;")  # XML attribute
+
     rows = []
     for i, p in enumerate(phases):
         green = set(p["groups"])
         base = 3 * i
-        rows.append((base, state(green, "G"), p["min_green_s"], p["max_green_s"], None, p["name"]))
-        rows.append((base + 1, state(green, "y"), p["yellow_s"], p["yellow_s"], None, p["name"] + " yellow"))
-        # After the all-red: go to the next phase, or (if that phase has no recall and no demand)
-        # skip it and go to the one after.
+        target = f"call_{p['name']}" if skip and p.get("recall", "none") == "none" else None
+        rows.append((state(green, "G"), p["min_green_s"], p["max_green_s"], None, p["name"], target))
+        rows.append((state(green, "y"), p["yellow_s"], p["yellow_s"], None, p["name"] + " yellow", None))
         nxt = (i + 1) % n
-        options = [3 * nxt]
-        if phases[nxt].get("recall", "none") == "none":
-            options.append(3 * ((nxt + 1) % n))
-        rows.append((base + 2, state(set(), "r"), p["all_red_s"], p["all_red_s"], options, p["name"] + " all-red"))
-    passage = max(p["passage_s"] for p in phases)
+        options = None
+        if skip and phases[nxt].get("recall", "none") == "none":
+            # serve the next phase if it has a call (its finalTarget), otherwise the one after it
+            options = [3 * nxt, 3 * ((nxt + 1) % n)]
+        rows.append((state(set(), "r"), p["all_red_s"], p["all_red_s"], options, p["name"] + " all-red", None))
+    assert len(rows) == 3 * n and len(set(names)) == n
+
     setback = cfg["sumo"]["detector_setback_m"]
-    with open(GENERATED / "sumo_actuated.add.xml", "w", encoding="utf-8") as f:
+    path = GENERATED / SUMO_PROGRAMS["sumo" if skip else "sumo_noskip"]
+    with open(path, "w", encoding="utf-8") as f:
         f.write("<additional>\n")
         f.write(f'  <tlLogic id="{cfg["sumo"]["tls_id"]}" type="actuated" programID="sumo_actuated" offset="0">\n')
-        f.write(f'    <param key="max-gap" value="{passage}"/>\n')
         f.write(f'    <param key="detector-gap" value="{setback / SPEED:.2f}"/>\n')
         f.write('    <param key="file" value="NUL"/>\n')
-        for idx, st, mn, mx, options, name in rows:
+        for d in dets:
+            if d.get("mode", "extend") != "extend":
+                continue  # call-only loops take no part in gap control
+            lane = lanes[d["id"]]
+            passage = phases[names.index(d["phase"])]["passage_s"]
+            f.write(f'    <param key="{lane}" value="{d["id"]}"/>\n')
+            f.write(f'    <param key="max-gap:{lane}" value="{passage}"/>\n')
+        if skip:
+            for i, p in enumerate(phases):
+                if p.get("recall", "none") == "none":
+                    f.write(f'    <condition id="call_{p["name"]}" value="{call_condition(i)}"/>\n')
+        for st, mn, mx, options, name, target in rows:
             nxt = f' next="{" ".join(map(str, options))}"' if options else ""
-            f.write(f'    <phase duration="{mn}" minDur="{mn}" maxDur="{mx}" state="{st}"{nxt} name="{name}"/>\n')
+            tgt = f' finalTarget="{target}"' if target else ""
+            f.write(f'    <phase duration="{mn}" minDur="{mn}" maxDur="{mx}" state="{st}"{nxt}{tgt} name="{name}"/>\n')
         f.write("  </tlLogic>\n</additional>\n")
+    return str(path)
 
 
 def main() -> None:
@@ -123,7 +166,8 @@ def main() -> None:
     groups = link_groups(cfg, net)
     (GENERATED / "link_groups.json").write_text(json.dumps(groups, indent=1), encoding="utf-8")
     write_detectors(cfg, net)
-    write_sumo_actuated(cfg, groups)
+    write_sumo_actuated(cfg, groups, skip=True)
+    write_sumo_actuated(cfg, groups, skip=False)
     print(f"network: {net} ({len(groups)} signalised links)")
 
 

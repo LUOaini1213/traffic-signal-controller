@@ -1,6 +1,6 @@
 """Run every simulation the README reports and store one JSON record per run.
 
-  python3 sim/run_experiments.py              # all scenarios x 10 seeds x 3 controllers + fault runs
+  python3 sim/run_experiments.py              # all scenarios x 10 seeds x 4 controllers + fault/ablation runs
   python3 sim/run_experiments.py --seeds 2 --scenarios medium   # quicker subset
 
 Requires the Release build with the SUMO harness (cmake --preset release; TSC_BUILD_DIR points
@@ -18,11 +18,14 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from build_network import SUMO_PROGRAMS
 from common import (CONFIG, DEMAND_END_S, GENERATED, HARNESS, RESULTS, SCENARIOS, SEEDS, SIM_END_S,
                     WARMUP_S, group_of)
 
 RUNS = RESULTS / "runs"
-CONTROLLERS = ["fixed", "actuated", "sumo"]
+# "sumo" and "sumo_noskip" are SUMO's own actuated controller in two set-ups (see
+# build_network.write_sumo_actuated); the harness runs both as --controller sumo.
+CONTROLLERS = ["fixed", "actuated", "sumo", "sumo_noskip"]
 
 # Detector-fault experiment: all four loops of the north-south turn-across phase (advance
 # loops N_2, S_2 and stop-bar loops N_2s, S_2s) stick "off" at 600 s under medium demand, as if
@@ -39,32 +42,48 @@ FAULT_VARIANTS = {
 }
 
 
-def trip_stats(tripinfo: Path, n_generated: int) -> dict:
-    """Delay = time lost to the signal and queues (SUMO timeLoss) + time waiting to enter the network."""
+def trip_stats(tripinfo: Path, planned_departs: dict[str, float], sim_end_s: float) -> dict:
+    """Delay = time lost to the signal and queues (SUMO timeLoss) + time waiting to enter the network.
+
+    Vehicles still driving or queued when the run is cut off at sim_end_s only carry the delay
+    accumulated so far, and vehicles that were never inserted (their entry lane stayed blocked)
+    are not in the tripinfo at all; they are counted with delay = sim_end_s - planned departure.
+    When either kind occurs, the mean is a lower bound (flagged by "delay_is_lower_bound").
+    """
     per_movement: dict[str, list[float]] = {}
     delays: list[float] = []
     unfinished = 0
-    seen = 0
+    seen: set[str] = set()
+
+    def add(vid: str, planned: float, d: float) -> None:
+        if not WARMUP_S <= planned < DEMAND_END_S:
+            return
+        delays.append(d)
+        per_movement.setdefault(vid.split(".")[0], []).append(d)
+
     for _, trip in ET.iterparse(tripinfo):  # streaming: tripinfo files get large
         if trip.tag != "tripinfo":
             continue
-        seen += 1
         a = dict(trip.attrib)
         trip.clear()
+        seen.add(a["id"])
         planned = float(a["depart"]) - float(a["departDelay"])
-        if not WARMUP_S <= planned < DEMAND_END_S:
-            continue
-        d = float(a["timeLoss"]) + float(a["departDelay"])
-        delays.append(d)
-        per_movement.setdefault(a["id"].split(".")[0], []).append(d)
-        if float(a.get("arrival", "-1")) < 0:
+        if float(a.get("arrival", "-1")) < 0 and WARMUP_S <= planned < DEMAND_END_S:
             unfinished += 1
+        add(a["id"], planned, float(a["timeLoss"]) + float(a["departDelay"]))
+    never = {vid: t for vid, t in planned_departs.items() if vid not in seen}
+    never_in_window = 0
+    for vid, planned in never.items():
+        never_in_window += WARMUP_S <= planned < DEMAND_END_S
+        add(vid, planned, sim_end_s - planned)
     mean = lambda xs: sum(xs) / len(xs) if xs else None  # noqa: E731
     return {
         "mean_delay_s": mean(delays),
+        "delay_is_lower_bound": unfinished + never_in_window > 0,
         "vehicles_measured": len(delays),
         "vehicles_not_finished_in_window": unfinished,
-        "vehicles_never_inserted": n_generated - seen,
+        "vehicles_never_inserted": len(never),
+        "vehicles_never_inserted_in_window": never_in_window,
         "mean_delay_by_movement_s": {m: mean(v) for m, v in sorted(per_movement.items())},
         "mean_delay_by_group_s": {
             g: mean([d for m, v in per_movement.items() if group_of(m[0], m[1]) == g for d in v])
@@ -82,16 +101,17 @@ def run_one(job: dict) -> dict:
     routes = GENERATED / "routes" / f"{job['scenario']}_{job['seed']}.rou.xml"
     cmd = [str(HARNESS), "--config", str(job.get("config", CONFIG)), "--net", str(GENERATED / "junction.net.xml"),
            "--routes", str(routes), "--detectors", str(GENERATED / "detectors.add.xml"),
-           "--program", str(GENERATED / "sumo_actuated.add.xml"),
+           "--program", str(GENERATED / SUMO_PROGRAMS.get(job["controller"], SUMO_PROGRAMS["sumo"])),
            "--demand", str(GENERATED / f"{job['scenario']}.demand.json"),
-           "--controller", job["controller"], "--seed", str(job["seed"]),
+           "--controller", "sumo" if job["controller"].startswith("sumo") else job["controller"],
+           "--seed", str(job["seed"]),
            "--warmup", str(WARMUP_S), "--demand-end", str(DEMAND_END_S), "--end", str(SIM_END_S),
            "--tripinfo", str(tripinfo), "--summary", str(summary), *job.get("extra", [])]
     subprocess.run(cmd, check=True, capture_output=True)
     rec = json.loads(summary.read_text(encoding="utf-8"))
-    n_generated = sum(1 for _ in ET.parse(routes).getroot().iter("vehicle"))
-    rec.update(trip_stats(tripinfo, n_generated))
-    rec.update({k: job[k] for k in ("scenario", "seed", "experiment")})
+    departs = {v.get("id"): float(v.get("depart")) for v in ET.parse(routes).getroot().iter("vehicle")}
+    rec.update(trip_stats(tripinfo, departs, rec["sim_end_s"]))
+    rec.update({k: job[k] for k in ("scenario", "seed", "experiment", "controller")})
     rec["variant"] = job.get("variant")
     tripinfo.unlink()  # large; everything needed is in the record
     summary.unlink()

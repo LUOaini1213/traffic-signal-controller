@@ -53,7 +53,8 @@ def write_demand_file(name: str) -> str:
     for g, vph in flows.items():
         across = g.endswith("_R")
         groups[g] = {"flow_vph": vph, "lanes": 1 if across else 2,
-                     "saturation_vphpl": cal["turn_across_vphpl"] if across else cal["through_vphpl"]}
+                     # through group: lane 0 is shared with near-side turners, lane 1 is through only
+                     "saturation_vphpl": cal["turn_across_vphpl"] if across else cal["through_group_vphpl"]}
     path = GENERATED / f"{name}.demand.json"
     path.write_text(json.dumps({"scenario": name, "groups": groups}, indent=2), encoding="utf-8")
     return str(path)
