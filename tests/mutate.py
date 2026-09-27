@@ -47,9 +47,14 @@ MUTANTS = [
      "if (!conflicting_call && false) return std::nullopt;"),
     (SRC / "actuated.cpp", "if (green_elapsed >= cfg.max_green) return Termination::MaxOut;",
      "if (green_elapsed > cfg.max_green) return Termination::MaxOut;"),
-    (SRC / "actuated.cpp", "  if (effective_recall(p) == Recall::Max) return std::nullopt;  // held to max green\n", ""),
-    (SRC / "actuated.cpp", "if (gap(p, now) >= cfg.passage) return Termination::GapOut;",
-     "if (gap(p, now) > cfg.passage) return Termination::GapOut;"),
+    (SRC / "actuated.cpp", "effective_recall(p) == Recall::Max || gap(p, now) < cfg.passage;", "gap(p, now) < cfg.passage;"),
+    (SRC / "actuated.cpp", "gap(p, now) < cfg.passage;", "gap(p, now) <= cfg.passage;"),
+    # a green that rested past max green and then ends on a late call is a gap-out, not a max-out
+    (SRC / "actuated.cpp",
+     "  if (!extended) return Termination::GapOut;\n  if (green_elapsed >= cfg.max_green) return Termination::MaxOut;",
+     "  if (green_elapsed >= cfg.max_green) return Termination::MaxOut;\n  if (!extended) return Termination::GapOut;"),
+    # a vehicle leaving a loop is not a new vehicle and must not place a call
+    (SRC / "actuated.cpp", "if (e.on && !serving) calls_[p] = true;", "if (!serving) calls_[p] = true;"),
     (SRC / "actuated.cpp", "    if (monitor_.on(d)) return 0;\n", ""),
     (SRC / "actuated.cpp", "if (monitor_.faulty(d) || !cfg_.detectors[d].extends) continue;",
      "if (monitor_.faulty(d)) continue;"),
@@ -57,8 +62,11 @@ MUTANTS = [
     (SRC / "actuated.cpp", "return !monitor_.faulty(d) && monitor_.on(d); });", "return (void)d, false; });"),
     (SRC / "actuated.cpp", "void ActuatedController::on_green_start(PhaseId p, TimeMs /*now*/) { calls_[p] = false; }",
      "void ActuatedController::on_green_start(PhaseId /*p*/, TimeMs /*now*/) {}"),
-    (SRC / "actuated.cpp", "return monitor_.faulty_count() > cfg_.faults.max_faulty;",
-     "return monitor_.faulty_count() >= cfg_.faults.max_faulty;"),
+    (SRC / "actuated.cpp", "return broken > cfg_.faults.max_faulty;", "return broken >= cfg_.faults.max_faulty;"),
+    # stuck-off loops must not count towards junction fail-safe; lost feeds must
+    (SRC / "actuated.cpp", "monitor_.faulty_count(FaultKind::StuckOn) + monitor_.faulty_count(FaultKind::FeedLost);",
+     "monitor_.faulty_count();"),
+    (SRC / "actuated.cpp", " + monitor_.faulty_count(FaultKind::FeedLost);", ";"),
     # ---- shared phase sequencing
     (SRC / "sequencer.cpp", "if (now - stage_start_ >= p.yellow) {", "if (now - stage_start_ >= p.yellow - 500) {"),
     (SRC / "sequencer.cpp", "if (now - stage_start_ >= p.all_red) try_start_green(now);", "try_start_green(now);"),
@@ -66,9 +74,11 @@ MUTANTS = [
     # ---- detector fault monitor
     (SRC / "detector_monitor.cpp", "if (s.on && held >= cfg_.stuck_on) {", "if (s.on && held > cfg_.stuck_on) {"),
     (SRC / "detector_monitor.cpp",
-     "} else if (!s.on && held >= cfg_.stuck_off && arrivals_ - s.arrivals_at_change >= cfg_.stuck_off_min_others) {",
-     "} else if (false) {"),
-    (SRC / "detector_monitor.cpp", "arrivals_ - s.arrivals_at_change >= cfg_.stuck_off_min_others", "true"),
+     "} else if (!s.on && held >= cfg_.stuck_off && peers_saw >= cfg_.stuck_off_min_others) {",
+     "} else if ((void)peers_saw, false) {"),
+    (SRC / "detector_monitor.cpp", "peers_saw >= cfg_.stuck_off_min_others", "((void)peers_saw, true)"),
+    # silence must be judged against the loop's own approach, not the whole junction
+    (SRC / "detector_monitor.cpp", "  if (e.on) ++arrivals_[s.approach];", "  if (e.on) for (auto& a : arrivals_) ++a;"),
     (SRC / "detector_monitor.cpp", "  if (!cfg_.enabled) return fresh;\n", ""),
     (SRC / "detector_monitor.cpp", "  if (s.fault) return false;\n", ""),
     (SRC / "detector_monitor.cpp", "if (e.t < s.last_change) {", "if (false) {"),
@@ -76,8 +86,12 @@ MUTANTS = [
     (SRC / "runtime.cpp", "[&](const DetectorEvent& e) { return e.t <= next; });",
      "[&](const DetectorEvent& e) { return e.t < next; });"),
     (SRC / "runtime.cpp", "return a.on && !b.on;", "return !a.on && b.on;"),
-    (SRC / "runtime.cpp", "for (DetectorId d : owned_[msg->producer]) pipeline_.controller().detector_feed_lost(d, next);",
-     "(void)next;"),
+    (SRC / "runtime.cpp", "for (DetectorId d : owned_[p]) pipeline_.controller().detector_feed_lost(d, at);", "(void)at;"),
+    # the lost-feed fault must be timed from the closed producer's own last watermark ...
+    (SRC / "runtime.cpp", "lost_at[msg->producer] = first_tick_after(watermark[msg->producer]);",
+     "lost_at[msg->producer] = std::max(next, first_tick_after(start - 1));"),
+    # ... and be stamped with that time, not 0
+    (SRC / "runtime.cpp", "pipeline_.controller().detector_feed_lost(d, at);", "pipeline_.controller().detector_feed_lost(d, at - at);"),
     (SRC / "runtime.cpp", "if (e.t <= watermark_) {", "if (e.t < watermark_) {"),
     (INC / "blocking_queue.hpp", "    if (closed_) return false;\n    items_.push_back", "    items_.push_back"),
     # ---- config validation
