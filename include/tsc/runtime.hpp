@@ -23,8 +23,11 @@ bool event_order(const DetectorEvent& a, const DetectorEvent& b);
 // (time, detector, edge). The signal sequence is therefore identical however the threads are
 // scheduled, which the concurrency tests check against a single-threaded Pipeline.
 //
-// A producer that closes (or is destroyed) is treated as a lost detector feed: all of its
-// detectors are declared faulty, so their phases fall back to recall.
+// A producer that closes (or is destroyed) is treated as a lost detector feed. Its events up to
+// its final watermark are applied as usual; at the first tick after that watermark all of its
+// detectors are declared faulty (feed lost), so their phases fall back to recall. The fault
+// time depends only on what that producer sent, so the output does not depend on when the
+// close message arrives relative to the other producers' messages.
 class ControllerRuntime {
  public:
   struct Message {

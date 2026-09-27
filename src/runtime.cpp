@@ -141,17 +141,27 @@ void ControllerRuntime::run(TimeMs start) {
   const std::size_t n = owned_.size();
   std::vector<TimeMs> watermark(n, start - 1);
   std::vector<bool> open(n, true);
+  // For a producer that has closed: the tick at which its feed is declared lost, i.e. the first
+  // tick after its final watermark. It depends only on what the producer sent, never on where
+  // the other producers happened to be when the close arrived.
+  std::vector<std::optional<TimeMs>> lost_at(n);
   std::vector<DetectorEvent> pending;
   TimeMs next = start;
   std::optional<TimeMs> last_done;
 
-  // Lowest watermark among producers still connected; nullopt when none is left.
+  // Lowest watermark among producers still connected; nullopt when none is left. A closed
+  // producer has vouched for every tick up to its final watermark; everything after that is
+  // covered by its lost-feed fault, so it no longer holds the others back.
   auto frontier = [&]() -> std::optional<TimeMs> {
     std::optional<TimeMs> lo;
     for (std::size_t p = 0; p < n; ++p) {
       if (open[p]) lo = lo ? std::min(*lo, watermark[p]) : watermark[p];
     }
     return lo;
+  };
+  auto first_tick_after = [&](TimeMs w) -> TimeMs {
+    if (w < start) return start;
+    return start + ((w - start) / tick_ + 1) * tick_;
   };
 
   while (auto msg = inbox_->pop()) {
@@ -171,12 +181,19 @@ void ControllerRuntime::run(TimeMs start) {
       case Message::Kind::Closed:
         if (open[msg->producer]) {
           open[msg->producer] = false;
-          for (DetectorId d : owned_[msg->producer]) pipeline_.controller().detector_feed_lost(d, next);
+          lost_at[msg->producer] = first_tick_after(watermark[msg->producer]);
         }
         break;
     }
 
     for (auto lo = frontier(); lo && *lo >= next; lo = frontier()) {
+      for (std::size_t p = 0; p < n; ++p) {
+        if (lost_at[p] && *lost_at[p] <= next) {
+          const TimeMs at = *lost_at[p];
+          for (DetectorId d : owned_[p]) pipeline_.controller().detector_feed_lost(d, at);
+          lost_at[p].reset();
+        }
+      }
       auto due_end = std::partition(pending.begin(), pending.end(),
                                     [&](const DetectorEvent& e) { return e.t <= next; });
       std::vector<DetectorEvent> due(pending.begin(), due_end);
