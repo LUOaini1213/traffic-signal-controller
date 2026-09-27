@@ -11,7 +11,7 @@ permissions:
 jobs:
   test:
     name: gcc build + tests (-Werror)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # pinned: results and the smoke runs depend on its SUMO 1.18 package
     steps:
       - uses: actions/checkout@v4
       - name: Install toolchain
@@ -20,16 +20,16 @@ jobs:
 
   tidy:
     name: clang-tidy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # pinned: results and the smoke runs depend on its SUMO 1.18 package
     steps:
       - uses: actions/checkout@v4
       - name: Install toolchain
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends g++ cmake ninja-build libgtest-dev libgmock-dev nlohmann-json3-dev clang-tidy
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends g++ cmake ninja-build libgtest-dev libgmock-dev nlohmann-json3-dev clang-tidy sumo sumo-tools
       - run: bash scripts/ci.sh tidy
 
   asan:
     name: ASan + UBSan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # pinned: results and the smoke runs depend on its SUMO 1.18 package
     steps:
       - uses: actions/checkout@v4
       - name: Install toolchain
@@ -37,20 +37,22 @@ jobs:
       - run: bash scripts/ci.sh asan
 
   tsan:
-    name: ThreadSanitizer
-    runs-on: ubuntu-latest
+    name: ThreadSanitizer (tests + SUMO harness)
+    runs-on: ubuntu-24.04  # pinned: results and the smoke runs depend on its SUMO 1.18 package
     steps:
       - uses: actions/checkout@v4
       - name: Install toolchain
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang g++ cmake ninja-build libgtest-dev libgmock-dev nlohmann-json3-dev
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang g++ cmake ninja-build libgtest-dev libgmock-dev nlohmann-json3-dev sumo sumo-tools python3
       # TSan's shadow memory does not fit with 32-bit mmap randomisation (the runner default).
       - name: Lower mmap randomisation for TSan
         run: sudo sysctl vm.mmap_rnd_bits=28
       - run: bash scripts/ci.sh tsan
+        env:
+          SUMO_HOME: /usr/share/sumo
 
   sumo:
     name: SUMO smoke run
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # pinned: results and the smoke runs depend on its SUMO 1.18 package
     steps:
       - uses: actions/checkout@v4
       - name: Install toolchain and SUMO
@@ -61,7 +63,7 @@ jobs:
 
   mutation:
     name: mutation check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # pinned: results and the smoke runs depend on its SUMO 1.18 package
     steps:
       - uses: actions/checkout@v4
       - name: Install toolchain

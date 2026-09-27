@@ -22,6 +22,7 @@
 #include <memory>
 #include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
@@ -53,13 +54,18 @@ struct Args {
   bool faults_disabled = false;
 };
 
+// Thrown for a bad command line; main() then exits with status 64.
+struct UsageError : std::runtime_error {
+  using std::runtime_error::runtime_error;
+};
+
 [[noreturn]] void usage(const std::string& why) {
   std::cerr << "tsc_sumo: " << why << "\n"
             << "usage: tsc_sumo --config C --net N --routes R --detectors D --summary OUT.json\n"
                "                [--controller actuated|fixed|sumo] [--demand DEMAND.json] [--program SUMO_TLS.add.xml]\n"
                "                [--seed N] [--tripinfo FILE] [--warmup S] [--demand-end S] [--end S]\n"
                "                [--fault DET:stuck-on|stuck-off:T_S]... [--no-fault-handling]\n";
-  std::exit(64);
+  throw UsageError(why);
 }
 
 Args parse_args(int argc, char** argv) {
@@ -134,9 +140,7 @@ struct Sample {
   std::vector<bool> occupied;
 };
 
-}  // namespace
-
-int main(int argc, char** argv) {
+int run(int argc, char** argv) {
   const Args args = parse_args(argc, argv);
   const auto wall_start = std::chrono::steady_clock::now();
   tsc::Config cfg;
@@ -250,8 +254,10 @@ int main(int argc, char** argv) {
   std::vector<std::thread> producers;
   if (controller) {
     rt = std::make_unique<tsc::ControllerRuntime>(cfg, std::move(controller), 0, owned);
+    // Every queue exists before the first producer thread starts: the threads read `inbox`,
+    // so it must not be resized (reallocated) while they run.
+    for (std::size_t p = 0; p < owned.size(); ++p) inbox.push_back(std::make_unique<tsc::BlockingQueue<Sample>>());
     for (std::size_t p = 0; p < owned.size(); ++p) {
-      inbox.push_back(std::make_unique<tsc::BlockingQueue<Sample>>());
       producers.emplace_back([&, p, handle = rt->producer(p)]() mutable {
         std::vector<bool> last(owned[p].size(), false);
         while (auto smp = inbox[p]->pop()) {
@@ -267,6 +273,14 @@ int main(int argc, char** argv) {
       });
     }
   }
+  // Closes the sample queues and joins the producer threads (a joinable std::thread must not be
+  // destroyed). Safe to call more than once.
+  auto stop_producers = [&]() {
+    for (auto& q : inbox) q->close();
+    for (auto& th : producers) {
+      if (th.joinable()) th.join();
+    }
+  };
   auto publish_samples = [&](TimeMs t) {
     for (std::size_t p = 0; p < owned.size(); ++p) {
       Sample smp{t, {}};
@@ -315,6 +329,10 @@ int main(int argc, char** argv) {
       auto rec = rt->next_output();
       if (!rec) {
         std::cerr << "controller runtime stopped unexpectedly\n";
+        stop_producers();
+        rt->stop();
+        rt->join();
+        libsumo::Simulation::close();
         return 3;
       }
       libsumo::TrafficLight::setRedYellowGreenState(tls, state_from_groups(rec->displayed));
@@ -405,8 +423,7 @@ int main(int argc, char** argv) {
   }
 
   if (rt) {
-    for (auto& q : inbox) q->close();
-    for (auto& th : producers) th.join();
+    stop_producers();
     while (rt->next_output()) {
     }
     const tsc::Pipeline& pipe = rt->join();
@@ -429,4 +446,20 @@ int main(int argc, char** argv) {
 
   std::ofstream(args.summary) << out.dump(2) << "\n";
   return 0;
+}
+
+}  // namespace
+
+int main(int argc, char** argv) {
+  try {
+    return run(argc, argv);
+  } catch (const UsageError&) {
+    return 64;
+  } catch (const std::exception& e) {
+    std::cerr << "tsc_sumo: " << e.what() << "\n";
+    return 1;
+  } catch (...) {
+    std::cerr << "tsc_sumo: unknown exception\n";
+    return 1;
+  }
 }

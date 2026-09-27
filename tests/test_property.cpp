@@ -23,7 +23,10 @@ using nlohmann::json;
 namespace {
 
 int iterations(int fallback) {
-  if (const char* v = std::getenv("TSC_PROPERTY_ITERATIONS")) return std::max(1, std::atoi(v));
+  // Read on the test thread before any other thread exists.
+  if (const char* v = std::getenv("TSC_PROPERTY_ITERATIONS")) {  // NOLINT(concurrency-mt-unsafe)
+    return std::max(1, std::atoi(v));
+  }
   return fallback;
 }
 
@@ -97,6 +100,7 @@ TEST(Property, ControllersNeverViolateInvariantsOrStarveAPhase) {
     ActuatedController* act = nullptr;
     if (fixed) {
       std::vector<TimeMs> greens;
+      greens.reserve(cfg.phases.size());
       for (const auto& p : cfg.phases) greens.push_back(p.min_green + s(pick(rng, 0, 20)));
       ctl = std::make_unique<FixedTimeController>(cfg, 0, greens);
     } else {
