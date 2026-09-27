@@ -111,7 +111,7 @@ TEST(Actuated, VehicleStillOnLoopAtEndOfGreenKeepsCalling) {
   EXPECT_EQ(d.first(Signal::Green, G_NR, 70), 102.0);
 }
 
-TEST(Actuated, RestsInGreenWithoutConflictingDemandThenMaxesOutOnACall) {
+TEST(Actuated, RestsInGreenWithoutConflictingDemandThenGapsOutOnACall) {
   Driver d(config_with([](nlohmann::json& j) {
     for (auto& p : j["phases"]) p["recall"] = "none";
   }));
@@ -122,7 +122,10 @@ TEST(Actuated, RestsInGreenWithoutConflictingDemandThenMaxesOutOnACall) {
   EXPECT_EQ(d.at(10.0, G_ET), Signal::Green);
   EXPECT_EQ(d.at(99.5, G_ET), Signal::Green);  // well past max green, nobody else waiting
   EXPECT_EQ(d.at(100.0, G_ET), Signal::Yellow);
-  EXPECT_EQ(d.ctl().stats()[EW_T].max_outs, 1u);
+  // The green was no longer being extended (last vehicle at 10.5 s) when the call arrived, so
+  // this is a gap-out in NEMA terms, although the green had run past max green while resting.
+  EXPECT_EQ(d.ctl().stats()[EW_T].gap_outs, 1u);
+  EXPECT_EQ(d.ctl().stats()[EW_T].max_outs, 0u);
   EXPECT_EQ(d.at(105.0, G_NT), Signal::Green);
   EXPECT_EQ(d.ctl().stats()[NS_T].skipped, 1u);
   EXPECT_EQ(d.ctl().stats()[NS_R].skipped, 1u);
@@ -175,6 +178,33 @@ TEST(Actuated, ActuationDuringOwnGreenExtendsButDoesNotCallAgain) {
   EXPECT_EQ(d.at(22.5, G_NR), Signal::Green);
   EXPECT_EQ(d.at(23.0, G_NR), Signal::Yellow);  // min green 6 s and gap 2.5 s after 20.5
   EXPECT_EQ(d.first(Signal::Green, G_NR, 30), -1);
+}
+
+TEST(Actuated, RestingGreenStillExtendedAtACallMaxesOut) {
+  Driver d(config_with([](nlohmann::json& j) {
+    for (auto& p : j["phases"]) p["recall"] = "none";
+  }));
+  for (double t = 10; t < 120; t += 2) d.pulse(t, "E_0");  // steady EW traffic keeps extending
+  d.pulse(100, "N_0");
+  d.run_until(110);
+  EXPECT_EQ(d.at(99.5, G_ET), Signal::Green);
+  EXPECT_EQ(d.at(100.0, G_ET), Signal::Yellow);  // past max green and still extended: max-out
+  EXPECT_EQ(d.ctl().stats()[EW_T].max_outs, 1u);
+  EXPECT_EQ(d.ctl().stats()[EW_T].gap_outs, 0u);
+}
+
+TEST(Actuated, VehicleLeavingALoopPlacesNoCall) {
+  Driver d(repo_config());
+  d.pulse(5, "N_2");  // NS_right green 17.0-23.0 (min green), yellow 23.0-26.0
+  // A right-turner reaches the call-only stop-bar loop during the green and clears it during
+  // the yellow. Its arrival was served, and leaving a loop is not a new vehicle: no call.
+  d.event(20, "N_2s", true);
+  d.event(25, "N_2s", false);
+  d.run_until(120);
+  EXPECT_EQ(d.at(22.5, G_NR), Signal::Green);
+  EXPECT_EQ(d.at(23.0, G_NR), Signal::Yellow);
+  EXPECT_EQ(d.first(Signal::Green, G_NR, 30), -1);  // not served again
+  EXPECT_EQ(d.ctl().stats()[NS_R].served, 1u);
 }
 
 TEST(Actuated, CallOnlyStopBarLoopCallsButDoesNotExtend) {

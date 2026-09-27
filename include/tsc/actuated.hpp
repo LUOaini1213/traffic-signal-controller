@@ -11,7 +11,9 @@ namespace tsc {
 //  * Phases with recall "min"/"max" always have a call; a phase with no call is skipped.
 //  * While green, the phase is extended by vehicles: it gaps out once min green has elapsed
 //    and no healthy detector of the phase has been occupied for `passage`.
-//  * It maxes out when green has lasted max green (timed from the start of green).
+//  * It maxes out when green has lasted max green (timed from the start of green) while still
+//    being extended. A green that is no longer extended ends as a gap-out, also when it rested
+//    past max green and a conflicting call only arrived later.
 //  * A green only ends if some other phase is calling; otherwise it rests in green.
 //  * A phase with a faulty detector falls back to faults.fallback recall. Only stuck-on and
 //    feed-lost detectors count towards faults.max_faulty (junction fail-safe).

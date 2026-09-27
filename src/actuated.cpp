@@ -75,9 +75,12 @@ std::optional<Termination> ActuatedController::terminate(TimeMs now, TimeMs gree
   }
   if (!conflicting_call) return std::nullopt;  // rest in green
 
+  // A green that is no longer being extended ends by gap-out, even when it has already run
+  // past max green (e.g. it rested with no demand and a conflicting call arrived later). Only
+  // a green that vehicles, or max recall, are still extending is cut off by max-out.
+  const bool extended = effective_recall(p) == Recall::Max || gap(p, now) < cfg.passage;
+  if (!extended) return Termination::GapOut;
   if (green_elapsed >= cfg.max_green) return Termination::MaxOut;
-  if (effective_recall(p) == Recall::Max) return std::nullopt;  // held to max green
-  if (gap(p, now) >= cfg.passage) return Termination::GapOut;
   return std::nullopt;
 }
 
