@@ -1,0 +1,23 @@
+# build trees
+/build/
+/out/
+CMakeUserPresets.json
+compile_commands.json
+
+# generated SUMO inputs and raw per-run outputs (large, reproducible by the scripts)
+/sim/generated/
+/results/runs/
+*.tripinfo.xml
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

@@ -1,0 +1,1370 @@
+{
+ "method": "Aggregate results/runs/**/*.json into results/results.json and results/results.md.\n\nEvery number quoted in the README comes from these two files.\n\nStatistics: each scenario is run with the same 10 seeds for every controller (same arrivals,\nsame driver randomness), so controllers are compared by paired differences per seed. Intervals\nare two-sided 95 % Student-t intervals across seeds (n = 10, df = 9).",
+ "scenarios": {
+  "low": {
+   "demand_vph_per_approach": {
+    "N": 300,
+    "S": 300,
+    "E": 300,
+    "W": 300
+   },
+   "controllers": {
+    "fixed": {
+     "mean_delay_s": {
+      "mean": 22.5438382244742,
+      "lo": 22.15868965848564,
+      "hi": 22.928986790462762,
+      "n": 10
+     },
+     "queue_p95_veh": {
+      "mean": 5.4,
+      "lo": 5.030616946788297,
+      "hi": 5.769383053211704,
+      "n": 10
+     },
+     "throughput_vph": {
+      "mean": 1177.5272727272727,
+      "lo": 1146.2982645397208,
+      "hi": 1208.7562809148246,
+      "n": 10
+     },
+     "gap_outs_per_h": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "max_outs_per_h": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "unfinished_vehicles_total": 0,
+     "delay_through_s": {
+      "mean": 22.09249584381838,
+      "lo": 21.778229755001117,
+      "hi": 22.406761932635643,
+      "n": 10
+     },
+     "delay_turn_across_s": {
+      "mean": 24.894892265078493,
+      "lo": 23.957424993875463,
+      "hi": 25.832359536281523,
+      "n": 10
+     },
+     "never_inserted_total": 0
+    },
+    "actuated": {
+     "mean_delay_s": {
+      "mean": 18.935349166103357,
+      "lo": 18.49244115756096,
+      "hi": 19.378257174645753,
+      "n": 10
+     },
+     "queue_p95_veh": {
+      "mean": 5.0,
+      "lo": 5.0,
+      "hi": 5.0,
+      "n": 10
+     },
+     "throughput_vph": {
+      "mean": 1177.7454545454545,
+      "lo": 1148.2478230960435,
+      "hi": 1207.2430859948656,
+      "n": 10
+     },
+     "gap_outs_per_h": {
+      "mean": 251.1272727272727,
+      "lo": 249.2953770198223,
+      "hi": 252.9591684347231,
+      "n": 10
+     },
+     "max_outs_per_h": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "unfinished_vehicles_total": 0,
+     "delay_through_s": {
+      "mean": 18.19758458949766,
+      "lo": 17.80933646591249,
+      "hi": 18.585832713082826,
+      "n": 10
+     },
+     "delay_turn_across_s": {
+      "mean": 23.146004620451386,
+      "lo": 22.278461785598974,
+      "hi": 24.013547455303797,
+      "n": 10
+     },
+     "never_inserted_total": 0
+    },
+    "sumo": {
+     "mean_delay_s": {
+      "mean": 21.734711504881933,
+      "lo": 21.160317021946575,
+      "hi": 22.30910598781729,
+      "n": 10
+     },
+     "queue_p95_veh": {
+      "mean": 5.0,
+      "lo": 5.0,
+      "hi": 5.0,
+      "n": 10
+     },
+     "throughput_vph": {
+      "mean": 1175.3454545454547,
+      "lo": 1144.9709101266612,
+      "hi": 1205.7199989642481,
+      "n": 10
+     },
+     "gap_outs_per_h": {
+      "mean": 236.5090909090909,
+      "lo": 234.6406268104436,
+      "hi": 238.3775550077382,
+      "n": 10
+     },
+     "max_outs_per_h": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "unfinished_vehicles_total": 0,
+     "delay_through_s": {
+      "mean": 13.892031684298995,
+      "lo": 13.682227568216295,
+      "hi": 14.101835800381696,
+      "n": 10
+     },
+     "delay_turn_across_s": {
+      "mean": 66.95602760950264,
+      "lo": 63.39091276546711,
+      "hi": 70.52114245353818,
+      "n": 10
+     },
+     "never_inserted_total": 0
+    }
+   },
+   "paired": {
+    "actuated_minus_fixed": {
+     "mean_delay_s": {
+      "mean": -3.6084890583708416,
+      "lo": -3.938675411590353,
+      "hi": -3.2783027051513303,
+      "n": 10,
+      "verdict": "actuated better"
+     },
+     "queue_p95_veh": {
+      "mean": -0.4,
+      "lo": -0.7693830532117032,
+      "hi": -0.030616946788296795,
+      "n": 10,
+      "verdict": "actuated better"
+     },
+     "throughput_vph": {
+      "mean": 0.21818181818180166,
+      "lo": -4.475375272903022,
+      "hi": 4.911738909266625,
+      "n": 10,
+      "verdict": "no clear difference"
+     },
+     "mean_delay_pct": -16.00654255251605
+    },
+    "actuated_minus_sumo": {
+     "mean_delay_s": {
+      "mean": -2.7993623387785735,
+      "lo": -3.3119349711217394,
+      "hi": -2.2867897064354077,
+      "n": 10,
+      "verdict": "actuated better"
+     },
+     "queue_p95_veh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10,
+      "verdict": "no clear difference"
+     },
+     "throughput_vph": {
+      "mean": 2.4,
+      "lo": -1.3477756169107558,
+      "hi": 6.147775616910756,
+      "n": 10,
+      "verdict": "no clear difference"
+     },
+     "mean_delay_pct": -12.879684821902496
+    }
+   },
+   "webster": {
+    "Y": 0.16861487030922656,
+    "cycle_s": 52.0,
+    "optimal_cycle_s": 42.098419553183426,
+    "clamped": false,
+    "green_s": {
+     "EW_right": 6.0,
+     "EW_through": 10.0,
+     "NS_right": 6.0,
+     "NS_through": 10.0
+    }
+   }
+  },
+  "medium": {
+   "demand_vph_per_approach": {
+    "N": 600,
+    "S": 600,
+    "E": 600,
+    "W": 600
+   },
+   "controllers": {
+    "fixed": {
+     "mean_delay_s": {
+      "mean": 26.07677153987916,
+      "lo": 25.74336169473744,
+      "hi": 26.41018138502088,
+      "n": 10
+     },
+     "queue_p95_veh": {
+      "mean": 9.9,
+      "lo": 9.6738,
+      "hi": 10.1262,
+      "n": 10
+     },
+     "throughput_vph": {
+      "mean": 2393.018181818182,
+      "lo": 2367.16040867466,
+      "hi": 2418.8759549617034,
+      "n": 10
+     },
+     "gap_outs_per_h": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "max_outs_per_h": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "unfinished_vehicles_total": 0,
+     "delay_through_s": {
+      "mean": 25.090915358002075,
+      "lo": 24.792802961248018,
+      "hi": 25.389027754756132,
+      "n": 10
+     },
+     "delay_turn_across_s": {
+      "mean": 31.434382880975058,
+      "lo": 30.320797785183156,
+      "hi": 32.54796797676696,
+      "n": 10
+     },
+     "never_inserted_total": 0
+    },
+    "actuated": {
+     "mean_delay_s": {
+      "mean": 25.45159629806333,
+      "lo": 24.900025929113543,
+      "hi": 26.003166667013115,
+      "n": 10
+     },
+     "queue_p95_veh": {
+      "mean": 10.5,
+      "lo": 10.123,
+      "hi": 10.877,
+      "n": 10
+     },
+     "throughput_vph": {
+      "mean": 2395.9636363636364,
+      "lo": 2371.6517473158938,
+      "hi": 2420.275525411379,
+      "n": 10
+     },
+     "gap_outs_per_h": {
+      "mean": 225.6,
+      "lo": 223.3990183695631,
+      "hi": 227.8009816304369,
+      "n": 10
+     },
+     "max_outs_per_h": {
+      "mean": 0.10909090909090909,
+      "lo": -0.13767272727272722,
+      "hi": 0.3558545454545454,
+      "n": 10
+     },
+     "unfinished_vehicles_total": 0,
+     "delay_through_s": {
+      "mean": 24.30497660355615,
+      "lo": 23.86913955936342,
+      "hi": 24.74081364774888,
+      "n": 10
+     },
+     "delay_turn_across_s": {
+      "mean": 31.973332675286333,
+      "lo": 30.7918891731276,
+      "hi": 33.154776177445065,
+      "n": 10
+     },
+     "never_inserted_total": 0
+    },
+    "sumo": {
+     "mean_delay_s": {
+      "mean": 29.59064045276931,
+      "lo": 28.86670007286027,
+      "hi": 30.314580832678352,
+      "n": 10
+     },
+     "queue_p95_veh": {
+      "mean": 11.5,
+      "lo": 10.89210576577829,
+      "hi": 12.10789423422171,
+      "n": 10
+     },
+     "throughput_vph": {
+      "mean": 2389.8545454545456,
+      "lo": 2367.6761512197268,
+      "hi": 2412.0329396893644,
+      "n": 10
+     },
+     "gap_outs_per_h": {
+      "mean": 192.54545454545456,
+      "lo": 189.57402687957511,
+      "hi": 195.516882211334,
+      "n": 10
+     },
+     "max_outs_per_h": {
+      "mean": 4.472727272727273,
+      "lo": 2.980764950290728,
+      "hi": 5.964689595163817,
+      "n": 10
+     },
+     "unfinished_vehicles_total": 0,
+     "delay_through_s": {
+      "mean": 18.839365100086656,
+      "lo": 18.46724320739669,
+      "hi": 19.21148699277662,
+      "n": 10
+     },
+     "delay_turn_across_s": {
+      "mean": 90.4372282535303,
+      "lo": 88.41311950016757,
+      "hi": 92.46133700689302,
+      "n": 10
+     },
+     "never_inserted_total": 0
+    }
+   },
+   "paired": {
+    "actuated_minus_fixed": {
+     "mean_delay_s": {
+      "mean": -0.6251752418158336,
+      "lo": -1.179790214876961,
+      "hi": -0.07056026875470622,
+      "n": 10,
+      "verdict": "actuated better"
+     },
+     "queue_p95_veh": {
+      "mean": 0.6,
+      "lo": 0.23061694678829675,
+      "hi": 0.9693830532117031,
+      "n": 10,
+      "verdict": "actuated WORSE"
+     },
+     "throughput_vph": {
+      "mean": 2.9454545454545498,
+      "lo": -2.283373163688368,
+      "hi": 8.174282254597468,
+      "n": 10,
+      "verdict": "no clear difference"
+     },
+     "mean_delay_pct": -2.3974411129067654
+    },
+    "actuated_minus_sumo": {
+     "mean_delay_s": {
+      "mean": -4.139044154705987,
+      "lo": -4.820783093468885,
+      "hi": -3.457305215943089,
+      "n": 10,
+      "verdict": "actuated better"
+     },
+     "queue_p95_veh": {
+      "mean": -1.0,
+      "lo": -1.5840458886080784,
+      "hi": -0.4159541113919216,
+      "n": 10,
+      "verdict": "actuated better"
+     },
+     "throughput_vph": {
+      "mean": 6.1090909090909005,
+      "lo": -1.0918235981203885,
+      "hi": 13.31000541630219,
+      "n": 10,
+      "verdict": "no clear difference"
+     },
+     "mean_delay_pct": -13.98768019675838
+    }
+   },
+   "webster": {
+    "Y": 0.3372297406184531,
+    "cycle_s": 56.0,
+    "optimal_cycle_s": 52.80864598942576,
+    "clamped": false,
+    "green_s": {
+     "EW_right": 6.0,
+     "EW_through": 12.0,
+     "NS_right": 6.0,
+     "NS_through": 12.0
+    }
+   }
+  },
+  "high": {
+   "demand_vph_per_approach": {
+    "N": 1200,
+    "S": 1200,
+    "E": 1200,
+    "W": 1200
+   },
+   "controllers": {
+    "fixed": {
+     "mean_delay_s": {
+      "mean": 53.062870780185584,
+      "lo": 51.14235649054552,
+      "hi": 54.98338506982565,
+      "n": 10
+     },
+     "queue_p95_veh": {
+      "mean": 36.7,
+      "lo": 33.897999650249844,
+      "hi": 39.50200034975016,
+      "n": 10
+     },
+     "throughput_vph": {
+      "mean": 4767.709090909091,
+      "lo": 4722.972598706641,
+      "hi": 4812.445583111541,
+      "n": 10
+     },
+     "gap_outs_per_h": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "max_outs_per_h": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "unfinished_vehicles_total": 0,
+     "delay_through_s": {
+      "mean": 49.25880598182147,
+      "lo": 47.37607713161634,
+      "hi": 51.14153483202659,
+      "n": 10
+     },
+     "delay_turn_across_s": {
+      "mean": 73.18445166787241,
+      "lo": 67.12019007685065,
+      "hi": 79.24871325889417,
+      "n": 10
+     },
+     "never_inserted_total": 0
+    },
+    "actuated": {
+     "mean_delay_s": {
+      "mean": 53.45009196922738,
+      "lo": 52.066131936187816,
+      "hi": 54.834052002266944,
+      "n": 10
+     },
+     "queue_p95_veh": {
+      "mean": 38.1,
+      "lo": 36.65161329749269,
+      "hi": 39.548386702507315,
+      "n": 10
+     },
+     "throughput_vph": {
+      "mean": 4773.818181818182,
+      "lo": 4732.115857349048,
+      "hi": 4815.520506287316,
+      "n": 10
+     },
+     "gap_outs_per_h": {
+      "mean": 55.2,
+      "lo": 50.72184618677786,
+      "hi": 59.678153813222146,
+      "n": 10
+     },
+     "max_outs_per_h": {
+      "mean": 49.41818181818182,
+      "lo": 46.49727669773634,
+      "hi": 52.339086938627304,
+      "n": 10
+     },
+     "unfinished_vehicles_total": 0,
+     "delay_through_s": {
+      "mean": 51.12560913521038,
+      "lo": 49.59570812226375,
+      "hi": 52.65551014815701,
+      "n": 10
+     },
+     "delay_turn_across_s": {
+      "mean": 66.55723829595884,
+      "lo": 64.97558480965283,
+      "hi": 68.13889178226485,
+      "n": 10
+     },
+     "never_inserted_total": 0
+    },
+    "sumo": {
+     "mean_delay_s": {
+      "mean": 61.001097055522436,
+      "lo": 57.701682882181814,
+      "hi": 64.30051122886306,
+      "n": 10
+     },
+     "queue_p95_veh": {
+      "mean": 40.5,
+      "lo": 37.59440839070595,
+      "hi": 43.40559160929405,
+      "n": 10
+     },
+     "throughput_vph": {
+      "mean": 4767.709090909091,
+      "lo": 4725.762175929338,
+      "hi": 4809.656005888844,
+      "n": 10
+     },
+     "gap_outs_per_h": {
+      "mean": 39.6,
+      "lo": 35.049159949094495,
+      "hi": 44.15084005090551,
+      "n": 10
+     },
+     "max_outs_per_h": {
+      "mean": 58.69090909090909,
+      "lo": 54.99768915976029,
+      "hi": 62.384129022057884,
+      "n": 10
+     },
+     "unfinished_vehicles_total": 0,
+     "delay_through_s": {
+      "mean": 42.19170959531182,
+      "lo": 40.9347875198296,
+      "hi": 43.44863167079404,
+      "n": 10
+     },
+     "delay_turn_across_s": {
+      "mean": 165.50802585021017,
+      "lo": 150.15475094721404,
+      "hi": 180.8613007532063,
+      "n": 10
+     },
+     "never_inserted_total": 0
+    }
+   },
+   "paired": {
+    "actuated_minus_fixed": {
+     "mean_delay_s": {
+      "mean": 0.3872211890418022,
+      "lo": -0.9036579846744346,
+      "hi": 1.678100362758039,
+      "n": 10,
+      "verdict": "no clear difference"
+     },
+     "queue_p95_veh": {
+      "mean": 1.4,
+      "lo": -0.7904965281871594,
+      "hi": 3.5904965281871593,
+      "n": 10,
+      "verdict": "no clear difference"
+     },
+     "throughput_vph": {
+      "mean": 6.109090909090719,
+      "lo": -3.2129296242735474,
+      "hi": 15.431111442454986,
+      "n": 10,
+      "verdict": "no clear difference"
+     },
+     "mean_delay_pct": 0.7297403690159863
+    },
+    "actuated_minus_sumo": {
+     "mean_delay_s": {
+      "mean": -7.551005086295054,
+      "lo": -10.06310954771423,
+      "hi": -5.038900624875876,
+      "n": 10,
+      "verdict": "actuated better"
+     },
+     "queue_p95_veh": {
+      "mean": -2.4,
+      "lo": -5.512476930034984,
+      "hi": 0.7124769300349842,
+      "n": 10,
+      "verdict": "no clear difference"
+     },
+     "throughput_vph": {
+      "mean": 6.109090909090628,
+      "lo": -7.4875630621828835,
+      "hi": 19.70574488036414,
+      "n": 10,
+      "verdict": "no clear difference"
+     },
+     "mean_delay_pct": -12.378474241901294
+    }
+   },
+   "webster": {
+    "Y": 0.6744594812369062,
+    "cycle_s": 108.0,
+    "optimal_cycle_s": 107.51349826738655,
+    "clamped": false,
+    "green_s": {
+     "EW_right": 12.5,
+     "EW_through": 31.5,
+     "NS_right": 12.5,
+     "NS_through": 31.5
+    }
+   }
+  },
+  "asymmetric": {
+   "demand_vph_per_approach": {
+    "N": 1100,
+    "S": 1100,
+    "E": 300,
+    "W": 300
+   },
+   "controllers": {
+    "fixed": {
+     "mean_delay_s": {
+      "mean": 30.208614683442924,
+      "lo": 29.12450800616505,
+      "hi": 31.292721360720797,
+      "n": 10
+     },
+     "queue_p95_veh": {
+      "mean": 16.3,
+      "lo": 15.542239378167485,
+      "hi": 17.057760621832514,
+      "n": 10
+     },
+     "throughput_vph": {
+      "mean": 2792.6181818181817,
+      "lo": 2746.507997426846,
+      "hi": 2838.7283662095174,
+      "n": 10
+     },
+     "gap_outs_per_h": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "max_outs_per_h": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "unfinished_vehicles_total": 0,
+     "delay_through_s": {
+      "mean": 28.08419607033116,
+      "lo": 27.515600599614196,
+      "hi": 28.652791541048124,
+      "n": 10
+     },
+     "delay_turn_across_s": {
+      "mean": 40.769798439745394,
+      "lo": 37.66202931493499,
+      "hi": 43.8775675645558,
+      "n": 10
+     },
+     "never_inserted_total": 0
+    },
+    "actuated": {
+     "mean_delay_s": {
+      "mean": 26.449934914293323,
+      "lo": 25.941223534082784,
+      "hi": 26.95864629450386,
+      "n": 10
+     },
+     "queue_p95_veh": {
+      "mean": 14.1,
+      "lo": 13.473680560735977,
+      "hi": 14.726319439264023,
+      "n": 10
+     },
+     "throughput_vph": {
+      "mean": 2793.7090909090907,
+      "lo": 2743.6439038352187,
+      "hi": 2843.7742779829628,
+      "n": 10
+     },
+     "gap_outs_per_h": {
+      "mean": 181.3090909090909,
+      "lo": 177.7464149449982,
+      "hi": 184.87176687318362,
+      "n": 10
+     },
+     "max_outs_per_h": {
+      "mean": 6.0,
+      "lo": 4.3042791045187005,
+      "hi": 7.6957208954812995,
+      "n": 10
+     },
+     "unfinished_vehicles_total": 0,
+     "delay_through_s": {
+      "mean": 27.30316654142938,
+      "lo": 26.500218473249827,
+      "hi": 28.106114609608934,
+      "n": 10
+     },
+     "delay_turn_across_s": {
+      "mean": 37.21342422826618,
+      "lo": 35.82853330324636,
+      "hi": 38.598315153285995,
+      "n": 10
+     },
+     "never_inserted_total": 0
+    },
+    "sumo": {
+     "mean_delay_s": {
+      "mean": 30.339989157747066,
+      "lo": 29.020139846011368,
+      "hi": 31.659838469482764,
+      "n": 10
+     },
+     "queue_p95_veh": {
+      "mean": 15.0,
+      "lo": 14.17403438328221,
+      "hi": 15.82596561671779,
+      "n": 10
+     },
+     "throughput_vph": {
+      "mean": 2795.2363636363634,
+      "lo": 2749.778465183683,
+      "hi": 2840.694262089044,
+      "n": 10
+     },
+     "gap_outs_per_h": {
+      "mean": 159.05454545454546,
+      "lo": 154.8960107373982,
+      "hi": 163.21308017169272,
+      "n": 10
+     },
+     "max_outs_per_h": {
+      "mean": 13.418181818181818,
+      "lo": 11.855345454545454,
+      "hi": 14.981018181818182,
+      "n": 10
+     },
+     "unfinished_vehicles_total": 0,
+     "delay_through_s": {
+      "mean": 21.246304532134758,
+      "lo": 20.76448809433629,
+      "hi": 21.728120969933226,
+      "n": 10
+     },
+     "delay_turn_across_s": {
+      "mean": 94.5012809257869,
+      "lo": 89.24007335297236,
+      "hi": 99.76248849860144,
+      "n": 10
+     },
+     "never_inserted_total": 0
+    }
+   },
+   "paired": {
+    "actuated_minus_fixed": {
+     "mean_delay_s": {
+      "mean": -3.7586797691496017,
+      "lo": -4.452690986899263,
+      "hi": -3.0646685513999397,
+      "n": 10,
+      "verdict": "actuated better"
+     },
+     "queue_p95_veh": {
+      "mean": -2.2,
+      "lo": -2.7642419339255104,
+      "hi": -1.63575806607449,
+      "n": 10,
+      "verdict": "actuated better"
+     },
+     "throughput_vph": {
+      "mean": 1.0909090909090537,
+      "lo": -4.2651188637640365,
+      "hi": 6.4469370455821435,
+      "n": 10,
+      "verdict": "no clear difference"
+     },
+     "mean_delay_pct": -12.4424102479936
+    },
+    "actuated_minus_sumo": {
+     "mean_delay_s": {
+      "mean": -3.890054243453745,
+      "lo": -4.811696676152618,
+      "hi": -2.9684118107548714,
+      "n": 10,
+      "verdict": "actuated better"
+     },
+     "queue_p95_veh": {
+      "mean": -0.9,
+      "lo": -1.4278,
+      "hi": -0.3722000000000001,
+      "n": 10,
+      "verdict": "actuated better"
+     },
+     "throughput_vph": {
+      "mean": -1.5272727272727935,
+      "lo": -15.540512061417905,
+      "hi": 12.485966606872319,
+      "n": 10,
+      "verdict": "no clear difference"
+     },
+     "mean_delay_pct": -12.82154131047358
+    }
+   },
+   "webster": {
+    "Y": 0.39343469738819536,
+    "cycle_s": 66.0,
+    "optimal_cycle_s": 57.70194874202956,
+    "clamped": false,
+    "green_s": {
+     "EW_right": 6.0,
+     "EW_through": 10.0,
+     "NS_right": 8.5,
+     "NS_through": 21.5
+    }
+   }
+  },
+  "saturated": {
+   "demand_vph_per_approach": {
+    "N": 1600,
+    "S": 1600,
+    "E": 1600,
+    "W": 1600
+   },
+   "controllers": {
+    "fixed": {
+     "mean_delay_s": {
+      "mean": 330.3910393973997,
+      "lo": 313.80277964248296,
+      "hi": 346.97929915231646,
+      "n": 10
+     },
+     "queue_p95_veh": {
+      "mean": 158.4,
+      "lo": 154.56718726781494,
+      "hi": 162.23281273218507,
+      "n": 10
+     },
+     "throughput_vph": {
+      "mean": 5606.4,
+      "lo": 5582.6319943524595,
+      "hi": 5630.16800564754,
+      "n": 10
+     },
+     "gap_outs_per_h": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "max_outs_per_h": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "unfinished_vehicles_total": 0,
+     "delay_through_s": {
+      "mean": 343.54181943008206,
+      "lo": 324.68903882452395,
+      "hi": 362.39460003564017,
+      "n": 10
+     },
+     "delay_turn_across_s": {
+      "mean": 240.7613791435393,
+      "lo": 211.9685307808026,
+      "hi": 269.554227506276,
+      "n": 10
+     },
+     "never_inserted_total": 0
+    },
+    "actuated": {
+     "mean_delay_s": {
+      "mean": 395.18333077947864,
+      "lo": 376.18491963357417,
+      "hi": 414.1817419253831,
+      "n": 10
+     },
+     "queue_p95_veh": {
+      "mean": 150.2,
+      "lo": 148.55496621311292,
+      "hi": 151.84503378688706,
+      "n": 10
+     },
+     "throughput_vph": {
+      "mean": 5387.781818181818,
+      "lo": 5362.25957009451,
+      "hi": 5413.304066269126,
+      "n": 10
+     },
+     "gap_outs_per_h": {
+      "mean": 5.5636363636363635,
+      "lo": 3.9835781427192973,
+      "hi": 7.14369458455343,
+      "n": 10
+     },
+     "max_outs_per_h": {
+      "mean": 90.98181818181818,
+      "lo": 89.64534000936098,
+      "hi": 92.31829635427539,
+      "n": 10
+     },
+     "unfinished_vehicles_total": 0,
+     "delay_through_s": {
+      "mean": 440.95722836765407,
+      "lo": 418.76507242621244,
+      "hi": 463.1493843090957,
+      "n": 10
+     },
+     "delay_turn_across_s": {
+      "mean": 124.82237784350013,
+      "lo": 111.86082777029144,
+      "hi": 137.78392791670885,
+      "n": 10
+     },
+     "never_inserted_total": 0
+    },
+    "sumo": {
+     "mean_delay_s": {
+      "mean": 214.68724154862448,
+      "lo": 199.2818374231871,
+      "hi": 230.09264567406186,
+      "n": 10
+     },
+     "queue_p95_veh": {
+      "mean": 147.7,
+      "lo": 140.58637861845318,
+      "hi": 154.8136213815468,
+      "n": 10
+     },
+     "throughput_vph": {
+      "mean": 5953.963636363636,
+      "lo": 5937.766381714348,
+      "hi": 5970.160891012924,
+      "n": 10
+     },
+     "gap_outs_per_h": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "max_outs_per_h": {
+      "mean": 89.45454545454545,
+      "lo": 89.45454545454545,
+      "hi": 89.45454545454545,
+      "n": 10
+     },
+     "unfinished_vehicles_total": 0,
+     "delay_through_s": {
+      "mean": 147.29229072314465,
+      "lo": 134.48359218472078,
+      "hi": 160.10098926156851,
+      "n": 10
+     },
+     "delay_turn_across_s": {
+      "mean": 586.7179343988425,
+      "lo": 538.6417551856414,
+      "hi": 634.7941136120437,
+      "n": 10
+     },
+     "never_inserted_total": 0
+    }
+   },
+   "paired": {
+    "actuated_minus_fixed": {
+     "mean_delay_s": {
+      "mean": 64.79229138207896,
+      "lo": 57.12735035847966,
+      "hi": 72.45723240567825,
+      "n": 10,
+      "verdict": "actuated WORSE"
+     },
+     "queue_p95_veh": {
+      "mean": -8.2,
+      "lo": -10.872182808117737,
+      "hi": -5.527817191882262,
+      "n": 10,
+      "verdict": "actuated better"
+     },
+     "throughput_vph": {
+      "mean": -218.6181818181817,
+      "lo": -235.98227027363833,
+      "hi": -201.2540933627251,
+      "n": 10,
+      "verdict": "actuated WORSE"
+     },
+     "mean_delay_pct": 19.610789536015755
+    },
+    "actuated_minus_sumo": {
+     "mean_delay_s": {
+      "mean": 180.49608923085418,
+      "lo": 169.16950299079647,
+      "hi": 191.8226754709119,
+      "n": 10,
+      "verdict": "actuated WORSE"
+     },
+     "queue_p95_veh": {
+      "mean": 2.5,
+      "lo": -4.518683024613663,
+      "hi": 9.518683024613663,
+      "n": 10,
+      "verdict": "no clear difference"
+     },
+     "throughput_vph": {
+      "mean": -566.1818181818182,
+      "lo": -599.5856716434962,
+      "hi": -532.7779647201403,
+      "n": 10,
+      "verdict": "actuated WORSE"
+     },
+     "mean_delay_pct": 84.07397101423638
+    }
+   },
+   "webster": {
+    "Y": 0.8992793083158751,
+    "cycle_s": 150.0,
+    "optimal_cycle_s": 347.49562790697684,
+    "clamped": true,
+    "green_s": {
+     "EW_right": 18.0,
+     "EW_through": 47.0,
+     "NS_right": 18.0,
+     "NS_through": 47.0
+    }
+   }
+  }
+ },
+ "safety": {
+  "fixed": {
+   "runs": 50,
+   "auditor_violations": 0,
+   "inconsistent_group_states": 0,
+   "guard_refusals": 0,
+   "failsafe_runs": 0
+  },
+  "actuated": {
+   "runs": 130,
+   "auditor_violations": 0,
+   "inconsistent_group_states": 0,
+   "guard_refusals": 0,
+   "failsafe_runs": 0
+  },
+  "sumo": {
+   "runs": 50,
+   "auditor_violations": 0,
+   "inconsistent_group_states": 0,
+   "guard_refusals": null,
+   "failsafe_runs": null
+  }
+ },
+ "fault": {
+  "no_fault": {
+   "runs": 10,
+   "mean_delay_s": {
+    "mean": 25.45159629806333,
+    "lo": 24.900025929113543,
+    "hi": 26.003166667013115,
+    "n": 10
+   },
+   "turn_across_ns_delay_s": {
+    "mean": 31.52453385230789,
+    "lo": 30.401236218492084,
+    "hi": 32.64783148612369,
+    "n": 10
+   },
+   "unfinished_total": 0,
+   "fault_declared_at_s": [],
+   "faults_declared": [],
+   "ns_right_greens_per_300s_mean": [
+    3.9,
+    4.5,
+    4.2,
+    4.5,
+    4.6,
+    4.3,
+    4.7,
+    4.2,
+    4.8,
+    4.5,
+    4.6,
+    4.7,
+    1.3,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "sim_end_s_max": 3729.0
+  },
+  "fault_handling_off": {
+   "runs": 10,
+   "mean_delay_s": {
+    "mean": 333.23948347074605,
+    "lo": 325.2432487171352,
+    "hi": 341.2357182243569,
+    "n": 10
+   },
+   "turn_across_ns_delay_s": {
+    "mean": 4801.6219472714165,
+    "lo": 4634.3689430415925,
+    "hi": 4968.8749515012405,
+    "n": 10
+   },
+   "unfinished_total": 1529,
+   "fault_declared_at_s": [],
+   "faults_declared": [],
+   "ns_right_greens_per_300s_mean": [
+    3.9,
+    4.5,
+    0.6,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "sim_end_s_max": 7200.0
+  },
+  "fault_handling_on": {
+   "runs": 10,
+   "mean_delay_s": {
+    "mean": 38.881627648037814,
+    "lo": 36.95772976754831,
+    "hi": 40.80552552852732,
+    "n": 10
+   },
+   "turn_across_ns_delay_s": {
+    "mean": 155.6356782114329,
+    "lo": 131.69737288886057,
+    "hi": 179.5739835340052,
+    "n": 10
+   },
+   "unfinished_total": 0,
+   "fault_declared_at_s": [
+    1349.5,
+    1370.5,
+    1404.5,
+    1418.5,
+    1421.5,
+    1431.0,
+    1438.0,
+    1441.0,
+    1446.5,
+    1452.0,
+    1452.5,
+    1456.5,
+    1459.0,
+    1464.5,
+    1466.5,
+    1470.0,
+    1475.5,
+    1482.5,
+    1483.0,
+    1483.5,
+    1486.0,
+    1491.5,
+    1492.0,
+    1492.5,
+    1493.0,
+    1494.5,
+    1495.5,
+    1496.0,
+    1496.5,
+    1498.0,
+    1499.0,
+    1500.0
+   ],
+   "faults_declared": [
+    [
+     "N_2",
+     "stuck-off"
+    ],
+    [
+     "N_2s",
+     "stuck-off"
+    ],
+    [
+     "S_2",
+     "stuck-off"
+    ],
+    [
+     "S_2s",
+     "stuck-off"
+    ]
+   ],
+   "ns_right_greens_per_300s_mean": [
+    3.9,
+    4.5,
+    0.6,
+    0.0,
+    1.0,
+    3.6,
+    3.9,
+    3.6,
+    3.7,
+    3.8,
+    3.6,
+    3.6,
+    2.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "sim_end_s_max": 3737.0
+  }
+ },
+ "ablation_stopbar_extend": {
+  "low": {
+   "call_only": {
+    "mean": 18.935349166103357,
+    "lo": 18.49244115756096,
+    "hi": 19.378257174645753,
+    "n": 10
+   },
+   "extend": {
+    "mean": 19.76275562762054,
+    "lo": 19.1622899216707,
+    "hi": 20.36322133357038,
+    "n": 10
+   },
+   "extend_minus_call": {
+    "mean": 0.8274064615171796,
+    "lo": 0.36964339612138136,
+    "hi": 1.2851695269129777,
+    "n": 10
+   }
+  },
+  "medium": {
+   "call_only": {
+    "mean": 25.45159629806333,
+    "lo": 24.900025929113543,
+    "hi": 26.003166667013115,
+    "n": 10
+   },
+   "extend": {
+    "mean": 28.153060265509044,
+    "lo": 27.562237061880413,
+    "hi": 28.743883469137675,
+    "n": 10
+   },
+   "extend_minus_call": {
+    "mean": 2.7014639674457155,
+    "lo": 2.2398873249800952,
+    "hi": 3.1630406099113357,
+    "n": 10
+   }
+  },
+  "high": {
+   "call_only": {
+    "mean": 53.45009196922738,
+    "lo": 52.066131936187816,
+    "hi": 54.834052002266944,
+    "n": 10
+   },
+   "extend": {
+    "mean": 57.69545155623105,
+    "lo": 56.91565577150957,
+    "hi": 58.47524734095253,
+    "n": 10
+   },
+   "extend_minus_call": {
+    "mean": 4.245359587003663,
+    "lo": 3.330688702774134,
+    "hi": 5.160030471233192,
+    "n": 10
+   }
+  },
+  "asymmetric": {
+   "call_only": {
+    "mean": 26.449934914293323,
+    "lo": 25.941223534082784,
+    "hi": 26.95864629450386,
+    "n": 10
+   },
+   "extend": {
+    "mean": 28.65779509413977,
+    "lo": 28.195224887422356,
+    "hi": 29.120365300857188,
+    "n": 10
+   },
+   "extend_minus_call": {
+    "mean": 2.2078601798464494,
+    "lo": 1.8052151602473412,
+    "hi": 2.6105051994455577,
+    "n": 10
+   }
+  },
+  "saturated": {
+   "call_only": {
+    "mean": 395.18333077947864,
+    "lo": 376.18491963357417,
+    "hi": 414.1817419253831,
+    "n": 10
+   },
+   "extend": {
+    "mean": 412.3985158613218,
+    "lo": 397.30767863885177,
+    "hi": 427.48935308379185,
+    "n": 10
+   },
+   "extend_minus_call": {
+    "mean": 17.21518508184311,
+    "lo": 10.787728906954168,
+    "hi": 23.642641256732052,
+    "n": 10
+   }
+  }
+ }
+}

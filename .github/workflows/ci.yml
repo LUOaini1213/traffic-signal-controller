@@ -1,0 +1,69 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+# Every job calls scripts/ci.sh, the same script used for local runs.
+jobs:
+  test:
+    name: gcc build + tests (-Werror)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends g++ cmake ninja-build libgtest-dev libgmock-dev nlohmann-json3-dev
+      - run: bash scripts/ci.sh test
+
+  tidy:
+    name: clang-tidy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends g++ cmake ninja-build libgtest-dev libgmock-dev nlohmann-json3-dev clang-tidy
+      - run: bash scripts/ci.sh tidy
+
+  asan:
+    name: ASan + UBSan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends g++ cmake ninja-build libgtest-dev libgmock-dev nlohmann-json3-dev
+      - run: bash scripts/ci.sh asan
+
+  tsan:
+    name: ThreadSanitizer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang g++ cmake ninja-build libgtest-dev libgmock-dev nlohmann-json3-dev
+      # TSan's shadow memory does not fit with 32-bit mmap randomisation (the runner default).
+      - name: Lower mmap randomisation for TSan
+        run: sudo sysctl vm.mmap_rnd_bits=28
+      - run: bash scripts/ci.sh tsan
+
+  sumo:
+    name: SUMO smoke run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain and SUMO
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends g++ cmake ninja-build libgtest-dev libgmock-dev nlohmann-json3-dev sumo sumo-tools python3
+      - run: bash scripts/ci.sh sumo
+        env:
+          SUMO_HOME: /usr/share/sumo
+
+  mutation:
+    name: mutation check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends g++ cmake ninja-build libgtest-dev libgmock-dev nlohmann-json3-dev python3
+      - run: bash scripts/ci.sh mutation

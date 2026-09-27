@@ -1,0 +1,54 @@
+{
+  "name": "single 4-arm junction, left-hand traffic, protected right turns",
+  "tick_ms": 500,
+  "groups": ["N_T", "S_T", "N_R", "S_R", "E_T", "W_T", "E_R", "W_R"],
+  "conflicts": [
+    [0, 0, 0, 1, 1, 1, 1, 1],
+    [0, 0, 1, 0, 1, 1, 1, 1],
+    [0, 1, 0, 0, 1, 1, 1, 1],
+    [1, 0, 0, 0, 1, 1, 1, 1],
+    [1, 1, 1, 1, 0, 0, 0, 1],
+    [1, 1, 1, 1, 0, 0, 1, 0],
+    [1, 1, 1, 1, 0, 1, 0, 0],
+    [1, 1, 1, 1, 1, 0, 0, 0]
+  ],
+  "phases": [
+    {"name": "NS_through", "groups": ["N_T", "S_T"], "min_green_s": 10, "max_green_s": 45,
+     "passage_s": 3.0, "yellow_s": 3.0, "all_red_s": 2.0, "recall": "min"},
+    {"name": "NS_right", "groups": ["N_R", "S_R"], "min_green_s": 6, "max_green_s": 20,
+     "passage_s": 2.5, "yellow_s": 3.0, "all_red_s": 2.0, "recall": "none"},
+    {"name": "EW_through", "groups": ["E_T", "W_T"], "min_green_s": 10, "max_green_s": 45,
+     "passage_s": 3.0, "yellow_s": 3.0, "all_red_s": 2.0, "recall": "min"},
+    {"name": "EW_right", "groups": ["E_R", "W_R"], "min_green_s": 6, "max_green_s": 20,
+     "passage_s": 2.5, "yellow_s": 3.0, "all_red_s": 2.0, "recall": "none"}
+  ],
+  "detectors": [
+    {"id": "N_0", "phase": "NS_through"}, {"id": "N_1", "phase": "NS_through"}, {"id": "N_2", "phase": "NS_right"},
+    {"id": "S_0", "phase": "NS_through"}, {"id": "S_1", "phase": "NS_through"}, {"id": "S_2", "phase": "NS_right"},
+    {"id": "E_0", "phase": "EW_through"}, {"id": "E_1", "phase": "EW_through"}, {"id": "E_2", "phase": "EW_right"},
+    {"id": "W_0", "phase": "EW_through"}, {"id": "W_1", "phase": "EW_through"}, {"id": "W_2", "phase": "EW_right"},
+    {"id": "N_2s", "phase": "NS_right", "mode": "call"}, {"id": "S_2s", "phase": "NS_right", "mode": "call"},
+    {"id": "E_2s", "phase": "EW_right", "mode": "call"}, {"id": "W_2s", "phase": "EW_right", "mode": "call"}
+  ],
+  "faults": {"enabled": true, "stuck_on_s": 300, "stuck_off_s": 900, "stuck_off_min_others": 20,
+             "fallback_recall": "max", "max_faulty": 4},
+  "sumo": {
+    "tls_id": "C",
+    "approaches": {"N": "n_in", "S": "s_in", "E": "e_in", "W": "w_in"},
+    "movements": {
+      "N_T": [["n_in", "s_out"], ["n_in", "e_out"]], "N_R": [["n_in", "w_out"]],
+      "S_T": [["s_in", "n_out"], ["s_in", "w_out"]], "S_R": [["s_in", "e_out"]],
+      "E_T": [["e_in", "w_out"], ["e_in", "s_out"]], "E_R": [["e_in", "n_out"]],
+      "W_T": [["w_in", "e_out"], ["w_in", "n_out"]], "W_R": [["w_in", "s_out"]]
+    },
+    "detector_lanes": {
+      "N_0": "n_in_0", "N_1": "n_in_1", "N_2": "n_in_2",
+      "S_0": "s_in_0", "S_1": "s_in_1", "S_2": "s_in_2",
+      "E_0": "e_in_0", "E_1": "e_in_1", "E_2": "e_in_2",
+      "W_0": "w_in_0", "W_1": "w_in_1", "W_2": "w_in_2",
+      "N_2s": "n_in_2", "S_2s": "s_in_2", "E_2s": "e_in_2", "W_2s": "w_in_2"
+    },
+    "detector_setback_m": 30,
+    "detector_setback_overrides_m": {"N_2s": 2.5, "S_2s": 2.5, "E_2s": 2.5, "W_2s": 2.5}
+  }
+}
