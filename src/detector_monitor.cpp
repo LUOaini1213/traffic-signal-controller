@@ -14,7 +14,17 @@ const char* to_string(FaultKind k) {
 }
 
 DetectorMonitor::DetectorMonitor(const Config& cfg, TimeMs start)
-    : cfg_(cfg.faults), state_(cfg.detectors.size(), State{false, start, 0, std::nullopt}) {}
+    : cfg_(cfg.faults), state_(cfg.detectors.size(), State{false, start, 0, 0, std::nullopt}) {
+  // Detectors with the same approach label count each other's vehicles.
+  std::vector<std::string> labels;
+  for (DetectorId d = 0; d < state_.size(); ++d) {
+    const std::string& label = cfg.detectors[d].approach;
+    auto it = std::find(labels.begin(), labels.end(), label);
+    if (it == labels.end()) it = labels.insert(labels.end(), label);
+    state_[d].approach = static_cast<std::size_t>(it - labels.begin());
+  }
+  arrivals_.assign(labels.size(), 0);
+}
 
 bool DetectorMonitor::update(const DetectorEvent& e) {
   State& s = state_.at(e.detector);
@@ -26,8 +36,8 @@ bool DetectorMonitor::update(const DetectorEvent& e) {
   if (e.on == s.on) return false;
   s.on = e.on;
   s.last_change = e.t;
-  if (e.on) ++arrivals_;
-  s.arrivals_at_change = arrivals_;
+  if (e.on) ++arrivals_[s.approach];
+  s.arrivals_at_change = arrivals_[s.approach];
   return true;
 }
 
@@ -38,9 +48,11 @@ std::vector<DetectorFault> DetectorMonitor::check(TimeMs now) {
     State& s = state_[d];
     if (s.fault) continue;
     const TimeMs held = now - s.last_change;
+    // Vehicles counted by the other loops of the same approach since this loop last changed.
+    const std::uint64_t peers_saw = arrivals_[s.approach] - s.arrivals_at_change;
     if (s.on && held >= cfg_.stuck_on) {
       s.fault = FaultKind::StuckOn;
-    } else if (!s.on && held >= cfg_.stuck_off && arrivals_ - s.arrivals_at_change >= cfg_.stuck_off_min_others) {
+    } else if (!s.on && held >= cfg_.stuck_off && peers_saw >= cfg_.stuck_off_min_others) {
       s.fault = FaultKind::StuckOff;
     } else {
       continue;
@@ -61,6 +73,11 @@ void DetectorMonitor::force_fault(DetectorId d, FaultKind kind, TimeMs now) {
 std::size_t DetectorMonitor::faulty_count() const {
   return static_cast<std::size_t>(
       std::count_if(state_.begin(), state_.end(), [](const State& s) { return s.fault.has_value(); }));
+}
+
+std::size_t DetectorMonitor::faulty_count(FaultKind kind) const {
+  return static_cast<std::size_t>(
+      std::count_if(state_.begin(), state_.end(), [kind](const State& s) { return s.fault == kind; }));
 }
 
 }  // namespace tsc

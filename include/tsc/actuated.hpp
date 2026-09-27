@@ -13,7 +13,8 @@ namespace tsc {
 //    and no healthy detector of the phase has been occupied for `passage`.
 //  * It maxes out when green has lasted max green (timed from the start of green).
 //  * A green only ends if some other phase is calling; otherwise it rests in green.
-//  * A phase with a faulty detector falls back to faults.fallback recall.
+//  * A phase with a faulty detector falls back to faults.fallback recall. Only stuck-on and
+//    feed-lost detectors count towards faults.max_faulty (junction fail-safe).
 class ActuatedController final : public Sequencer {
  public:
   ActuatedController(Config cfg, TimeMs start);

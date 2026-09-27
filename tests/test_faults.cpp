@@ -131,28 +131,102 @@ TEST(DetectorMonitor, TracksEdgesAndCountsStaleEvents) {
   EXPECT_FALSE(m.update({s(2001), 0, false}));  // same state again
 }
 
-TEST(DetectorMonitor, SilenceIsOnlyAFaultWhileOtherLoopsSeeTraffic) {
+TEST(DetectorMonitor, SilenceIsOnlyAFaultWhileLoopsOfTheSameApproachSeeTraffic) {
   const Config cfg = repo_config();  // stuck_off 900 s, stuck_off_min_others 20
-  const std::size_t n = cfg.detectors.size();
   DetectorMonitor m(cfg, 0);
   EXPECT_TRUE(m.check(s(2000)).empty());  // the whole junction quiet for 2000 s: no fault
 
-  // 19 vehicles over loop 1: not enough evidence yet that the other loops are broken.
+  // 19 vehicles over N_1: not enough evidence yet that the other north loops are broken.
+  const DetectorId n1 = cfg.detector_index("N_1");
   TimeMs t = s(2000);
   for (int k = 0; k < 19; ++k, t += 1000) {
+    m.update({t, n1, true});
+    m.update({t + 500, n1, false});
+  }
+  EXPECT_TRUE(m.check(t).empty());
+  m.update({t, n1, true});  // the 20th
+  m.update({t + 500, n1, false});
+  const auto f = m.check(t + 500);
+  // Only the other loops of the north approach are suspected; loops on the quiet approaches
+  // are judged against their own neighbours, which saw nothing either.
+  ASSERT_EQ(f.size(), 3u);
+  for (const char* id : {"N_0", "N_2", "N_2s"}) EXPECT_TRUE(m.faulty(cfg.detector_index(id))) << id;
+  for (const char* id : {"N_1", "S_0", "S_1", "S_2", "E_0", "E_2s", "W_1"}) {
+    EXPECT_FALSE(m.faulty(cfg.detector_index(id))) << id;
+  }
+  EXPECT_EQ(f[0].kind, FaultKind::StuckOff);
+  EXPECT_TRUE(m.check(t + 10000).empty());  // latched, not reported twice
+  EXPECT_EQ(m.faulty_count(), 3u);
+  EXPECT_EQ(m.faulty_count(FaultKind::StuckOff), 3u);
+  EXPECT_EQ(m.faulty_count(FaultKind::StuckOn), 0u);
+  const DetectorId n0 = cfg.detector_index("N_0");
+  EXPECT_FALSE(m.update({t + 20000, n0, true}));  // events from a faulty loop are ignored
+}
+
+TEST(DetectorMonitor, WithoutApproachLabelsAllLoopsJudgeEachOther) {
+  const Config cfg = config_with([](nlohmann::json& j) {
+    for (auto& d : j["detectors"]) d.erase("approach");
+  });
+  DetectorMonitor m(cfg, 0);
+  TimeMs t = s(1000);
+  for (int k = 0; k < 20; ++k, t += 1000) {
     m.update({t, 1, true});
     m.update({t + 500, 1, false});
   }
-  EXPECT_TRUE(m.check(t).empty());
-  m.update({t, 1, true});  // the 20th
-  m.update({t + 500, 1, false});
-  const auto f = m.check(t + 500);
-  EXPECT_EQ(f.size(), n - 1);  // every loop except the busy one
-  EXPECT_FALSE(m.faulty(1));
-  EXPECT_EQ(f[0].kind, FaultKind::StuckOff);
-  EXPECT_TRUE(m.check(t + 10000).empty());  // latched, not reported twice
-  EXPECT_EQ(m.faulty_count(), n - 1);
-  EXPECT_FALSE(m.update({t + 20000, 0, true}));  // events from a faulty loop are ignored
+  EXPECT_EQ(m.check(t).size(), cfg.detectors.size() - 1);
+}
+
+// Found in review: at night only the main road has traffic, one vehicle every 20 s over N_1
+// and S_1. Earlier versions judged silence against the whole junction, declared all 14 quiet
+// loops stuck-off at 900 s and latched the junction into fail-safe for good.
+TEST(Faults, NightTrafficOnOneRoadDoesNotSendTheJunctionToFailSafe) {
+  Driver d(repo_config());
+  for (double t = 1; t < 3600; t += 20) {
+    d.pulse(t, "N_1");
+    d.pulse(t + 3, "S_1");
+  }
+  d.run_until(3600);
+  EXPECT_FALSE(d.last().failsafe);
+  EXPECT_FALSE(d.ctl().wants_failsafe());
+  EXPECT_EQ(d.pipe().guard().refusals(), 0u);
+  // Silent loops on the busy approaches are suspected (their neighbour lane counts ~45
+  // vehicles in 15 min) and put their phases on recall; the quiet cross road is left alone.
+  const auto& m = d.ctl().monitor();
+  for (const char* id : {"N_0", "N_2", "N_2s", "S_0", "S_2", "S_2s"}) {
+    EXPECT_TRUE(m.faulty(repo_config().detector_index(id))) << id;
+  }
+  for (const char* id : {"N_1", "S_1", "E_0", "E_1", "E_2", "E_2s", "W_0", "W_1", "W_2", "W_2s"}) {
+    EXPECT_FALSE(m.faulty(repo_config().detector_index(id))) << id;
+  }
+  EXPECT_EQ(m.faulty_count(), m.faulty_count(FaultKind::StuckOff));
+  // The junction keeps cycling normally: the cross road is still served on its min recall.
+  const auto served_before = d.ctl().stats()[EW_T].served;
+  d.run_until(3900);
+  EXPECT_GT(d.ctl().stats()[EW_T].served, served_before);
+  EXPECT_FALSE(d.last().failsafe);
+}
+
+TEST(Faults, StuckOffLoopsNeverCountTowardsFailSafe) {
+  Driver d(repo_config());  // max_faulty 4
+  // Every loop of the north and south approaches except N_1 / S_1 goes silent (6 loops).
+  background_traffic(d, 1200, {"N_0", "N_2", "N_2s", "S_0", "S_2", "S_2s"});
+  d.run_until(1200);
+  EXPECT_EQ(d.ctl().monitor().faulty_count(FaultKind::StuckOff), 6u);
+  EXPECT_FALSE(d.ctl().wants_failsafe());
+  EXPECT_FALSE(d.last().failsafe);
+  EXPECT_EQ(d.ctl().effective_recall(NS_T), Recall::Max);
+  EXPECT_EQ(d.ctl().effective_recall(NS_R), Recall::Max);
+  EXPECT_EQ(d.ctl().effective_recall(EW_R), Recall::None);
+}
+
+TEST(Faults, LostFeedsCountTowardsFailSafe) {
+  Driver d(repo_config());
+  for (const char* id : {"N_0", "N_1", "N_2", "N_2s"}) {
+    d.ctl().detector_feed_lost(repo_config().detector_index(id), 0);
+  }
+  EXPECT_FALSE(d.ctl().wants_failsafe());  // 4 = max_faulty
+  d.ctl().detector_feed_lost(repo_config().detector_index("S_0"), 0);
+  EXPECT_TRUE(d.ctl().wants_failsafe());
 }
 
 TEST(DetectorMonitor, StuckOffNeedsTheFullSilentTime) {

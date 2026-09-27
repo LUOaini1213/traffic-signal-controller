@@ -23,12 +23,18 @@
      "passage_s": 2.5, "yellow_s": 3.0, "all_red_s": 2.0, "recall": "none"}
   ],
   "detectors": [
-    {"id": "N_0", "phase": "NS_through"}, {"id": "N_1", "phase": "NS_through"}, {"id": "N_2", "phase": "NS_right"},
-    {"id": "S_0", "phase": "NS_through"}, {"id": "S_1", "phase": "NS_through"}, {"id": "S_2", "phase": "NS_right"},
-    {"id": "E_0", "phase": "EW_through"}, {"id": "E_1", "phase": "EW_through"}, {"id": "E_2", "phase": "EW_right"},
-    {"id": "W_0", "phase": "EW_through"}, {"id": "W_1", "phase": "EW_through"}, {"id": "W_2", "phase": "EW_right"},
-    {"id": "N_2s", "phase": "NS_right", "mode": "call"}, {"id": "S_2s", "phase": "NS_right", "mode": "call"},
-    {"id": "E_2s", "phase": "EW_right", "mode": "call"}, {"id": "W_2s", "phase": "EW_right", "mode": "call"}
+    {"id": "N_0", "phase": "NS_through", "approach": "N"}, {"id": "N_1", "phase": "NS_through", "approach": "N"},
+    {"id": "N_2", "phase": "NS_right", "approach": "N"},
+    {"id": "S_0", "phase": "NS_through", "approach": "S"}, {"id": "S_1", "phase": "NS_through", "approach": "S"},
+    {"id": "S_2", "phase": "NS_right", "approach": "S"},
+    {"id": "E_0", "phase": "EW_through", "approach": "E"}, {"id": "E_1", "phase": "EW_through", "approach": "E"},
+    {"id": "E_2", "phase": "EW_right", "approach": "E"},
+    {"id": "W_0", "phase": "EW_through", "approach": "W"}, {"id": "W_1", "phase": "EW_through", "approach": "W"},
+    {"id": "W_2", "phase": "EW_right", "approach": "W"},
+    {"id": "N_2s", "phase": "NS_right", "mode": "call", "approach": "N"},
+    {"id": "S_2s", "phase": "NS_right", "mode": "call", "approach": "S"},
+    {"id": "E_2s", "phase": "EW_right", "mode": "call", "approach": "E"},
+    {"id": "W_2s", "phase": "EW_right", "mode": "call", "approach": "W"}
   ],
   "faults": {"enabled": true, "stuck_on_s": 300, "stuck_off_s": 900, "stuck_off_min_others": 20,
              "fallback_recall": "max", "max_faulty": 4},

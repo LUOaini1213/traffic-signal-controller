@@ -27,7 +27,12 @@ void ActuatedController::detector_feed_lost(DetectorId d, TimeMs now) {
 }
 
 bool ActuatedController::wants_failsafe() const {
-  return monitor_.faulty_count() > cfg_.faults.max_faulty;
+  // Stuck-off loops only put their own phase on recall. Loops that are stuck on or whose feed
+  // is gone point at wiring or equipment trouble; many of them at once means the controller can
+  // no longer see the junction.
+  const std::size_t broken =
+      monitor_.faulty_count(FaultKind::StuckOn) + monitor_.faulty_count(FaultKind::FeedLost);
+  return broken > cfg_.faults.max_faulty;
 }
 
 bool ActuatedController::phase_has_fault(PhaseId p) const {

@@ -28,17 +28,23 @@ struct DetectorConfig {
   // "extend" loops place calls and extend the green; "call" loops (e.g. at the stop line)
   // only place calls, so a vehicle waiting on one is never stranded but cannot hold a green.
   bool extends = true;
+  // Loops with the same approach label judge each other for stuck-off faults: a loop is only
+  // suspected of being stuck off while the other loops of its approach keep seeing vehicles.
+  // Loops without a label all share the empty label.
+  std::string approach;
 };
 
 struct FaultConfig {
   bool enabled = true;
   TimeMs stuck_on = 300'000;   // continuously occupied this long -> faulty
   TimeMs stuck_off = 600'000;  // continuously empty this long -> faulty ...
-  // ... but only if the other loops saw at least this many vehicles meanwhile. A loop that is
-  // quiet while the whole junction is quiet (night, end of a run) is not evidence of a fault.
+  // ... but only if the other loops of the same approach saw at least this many vehicles
+  // meanwhile. A loop that is quiet while its approach is quiet (night, a side road without
+  // traffic, the end of a run) is not evidence of a fault.
   std::size_t stuck_off_min_others = 20;
   Recall fallback = Recall::Max;
-  // More faulty detectors than this and the controller asks the safety guard for fail-safe.
+  // More stuck-on or feed-lost detectors than this and the controller asks the safety guard
+  // for fail-safe. Stuck-off loops never count towards it: only their own phase goes to recall.
   std::size_t max_faulty = 4;
 };
 

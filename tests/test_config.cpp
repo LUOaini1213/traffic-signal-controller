@@ -49,6 +49,7 @@ TEST(Config, RepositoryConfigIsValid) {
   EXPECT_EQ(c.detectors[c.detector_index("W_2")].phase, EW_R);
   EXPECT_TRUE(c.detectors[c.detector_index("W_2")].extends);
   EXPECT_FALSE(c.detectors[c.detector_index("W_2s")].extends);  // stop-bar loop: call only
+  EXPECT_EQ(c.detectors[c.detector_index("W_2s")].approach, "W");
   EXPECT_EQ(c.faults.stuck_off, 900'000);
   EXPECT_EQ(c.faults.max_faulty, 4u);
   EXPECT_EQ(c.faults.stuck_off_min_others, 20u);
@@ -102,6 +103,7 @@ TEST(Config, UnknownNamesAreRejected) {
   expect_rejected(edited([](json& j) { j["phases"][0]["min_gren_s"] = 5; }), "unknown key 'min_gren_s'");
   expect_rejected(edited([](json& j) { j["colour"] = "red"; }), "unknown key 'colour'");
   expect_rejected(edited([](json& j) { j["detectors"][0]["mode"] = "hold"; }), "expected \"extend\" or \"call\"");
+  expect_rejected(edited([](json& j) { j["detectors"][0]["approach"] = 3; }), "approach: expected a string");
 }
 
 TEST(Config, MissingKeysAreRejected) {

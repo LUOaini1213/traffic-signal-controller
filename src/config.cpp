@@ -331,7 +331,7 @@ Config parse_config(const nlohmann::json& j) {
         const auto& dj = (*ds)[i];
         const std::string where = "detectors[" + std::to_string(i) + "]";
         if (!r.is_object(dj, where)) continue;
-        r.no_unknown_keys(dj, where, {"id", "phase", "mode"});
+        r.no_unknown_keys(dj, where, {"id", "phase", "mode", "approach"});
         DetectorConfig d;
         d.id = r.string(dj, where, "id");
         const std::string phase = r.string(dj, where, "phase");
@@ -350,6 +350,13 @@ Config parse_config(const nlohmann::json& j) {
             d.extends = false;
           } else {
             r.error(where + ".mode: expected \"extend\" or \"call\"");
+          }
+        }
+        if (const auto* a = r.field(dj, where, "approach", false)) {
+          if (a->is_string()) {
+            d.approach = a->get<std::string>();
+          } else {
+            r.error(where + ".approach: expected a string");
           }
         }
         c.detectors.push_back(std::move(d));
