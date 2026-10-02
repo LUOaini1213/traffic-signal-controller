@@ -48,6 +48,7 @@ TEST(Faults, StuckOffDetectorFallsBackToRecallSoThePhaseIsServed) {
   EXPECT_EQ(d.ctl().monitor().faulty_count(), 0u);
   d.run_until(900);
   EXPECT_EQ(d.ctl().monitor().faulty_count(), 4u);
+  ASSERT_EQ(d.ctl().monitor().faults().size(), 4u);
   EXPECT_EQ(d.ctl().monitor().faults()[0].kind, FaultKind::StuckOff);
   EXPECT_EQ(d.ctl().effective_recall(NS_R), Recall::Max);
   EXPECT_TRUE(d.ctl().has_call(NS_R));
@@ -112,6 +113,7 @@ TEST(Faults, LostFeedIsAFault) {
   d.ctl().detector_feed_lost(w2, 0);
   d.ctl().detector_feed_lost(99, 0);  // unknown: ignored
   EXPECT_TRUE(d.ctl().monitor().faulty(w2));
+  ASSERT_EQ(d.ctl().monitor().faults().size(), 1u);
   EXPECT_EQ(d.ctl().monitor().faults()[0].kind, FaultKind::FeedLost);
   EXPECT_EQ(d.ctl().effective_recall(EW_R), Recall::Max);
   EXPECT_TRUE(d.ctl().has_call(EW_R));

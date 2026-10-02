@@ -138,6 +138,7 @@ TEST(Concurrency, ClosedProducerIsALostFeedAndOthersCarryOn) {
   for (DetectorId d : {9u, 10u, 11u, 15u}) {
     EXPECT_TRUE(act.monitor().faulty(d)) << d;
   }
+  ASSERT_FALSE(act.monitor().faults().empty());
   EXPECT_EQ(act.monitor().faults()[0].kind, FaultKind::FeedLost);
   EXPECT_EQ(act.effective_recall(EW_R), Recall::Max);
   EXPECT_EQ(pipe.guard().refusals(), 0u);
