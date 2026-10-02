@@ -31,7 +31,8 @@ class DetectorMonitor {
   bool update(const DetectorEvent& e);
   // Runs the stuck-on / stuck-off checks; returns faults declared by this call.
   std::vector<DetectorFault> check(TimeMs now);
-  // Declares a fault from outside (e.g. the detector's feed disconnected).
+  // Declares a fault from outside (e.g. the detector's feed disconnected). FeedLost
+  // supersedes a latched occupancy fault; duplicates and other changes are ignored.
   void force_fault(DetectorId d, FaultKind kind, TimeMs now);
 
   [[nodiscard]] bool on(DetectorId d) const { return state_.at(d).on; }
@@ -39,6 +40,7 @@ class DetectorMonitor {
   [[nodiscard]] bool faulty(DetectorId d) const { return state_.at(d).fault.has_value(); }
   [[nodiscard]] std::size_t faulty_count() const;
   [[nodiscard]] std::size_t faulty_count(FaultKind kind) const;
+  // History retains the initial fault and the time of any later feed-loss upgrade.
   [[nodiscard]] const std::vector<DetectorFault>& faults() const { return log_; }
   [[nodiscard]] std::size_t stale_events() const { return stale_; }
   [[nodiscard]] std::size_t size() const { return state_.size(); }

@@ -1,5 +1,7 @@
 #include "tsc/safety_guard.hpp"
 
+#include <algorithm>
+
 namespace tsc {
 
 SafetyGuard::SafetyGuard(const Config& cfg, TimeMs start)
@@ -57,10 +59,11 @@ std::optional<std::string> SafetyGuard::check(TimeMs now, const SignalVector& cm
 }
 
 const SignalVector& SafetyGuard::apply(TimeMs now, const SignalVector& cmd) {
+  const TimeMs safe_now = trusted_time(now);
   if (!failsafe_) {
     if (auto why = check(now, cmd)) {
       ++refusals_;
-      enter_failsafe(now, *why);
+      enter_failsafe(safe_now, *why);
     } else {
       for (std::size_t g = 0; g < shown_.size(); ++g) {
         if (shown_[g] != cmd[g]) {
@@ -70,14 +73,22 @@ const SignalVector& SafetyGuard::apply(TimeMs now, const SignalVector& cmd) {
       }
     }
   } else {
-    advance_failsafe(now);
+    advance_failsafe(safe_now);
   }
-  last_ = now;
+  last_ = safe_now;
   return shown_;
 }
 
 void SafetyGuard::request_failsafe(TimeMs now, const std::string& reason) {
+  now = trusted_time(now);
   if (!failsafe_) enter_failsafe(now, reason);
+  last_ = now;
+}
+
+TimeMs SafetyGuard::trusted_time(TimeMs now) const {
+  // A refused timestamp must neither backdate a new yellow nor rewind the clock used by
+  // subsequent calls. Requests and applies share this high-water mark.
+  return std::max(now, last_.value_or(start_));
 }
 
 void SafetyGuard::enter_failsafe(TimeMs now, const std::string& reason) {

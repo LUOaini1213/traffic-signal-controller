@@ -1,6 +1,6 @@
 """Mutation check: each deliberate bug below must make at least one unit test fail.
 
-For every mutant: patch one line of the library source, rebuild the test binary, run the
+For every mutant: patch one line of the source, rebuild the test and CLI binaries, run the
 suite, and restore the file. The mutant is "killed" if the build succeeds and at least one test
 fails (a hang past the timeout also counts as killed, and is reported as such). Before
 anything else the unmodified code must build and pass, otherwise every mutant would look
@@ -17,6 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 INC = ROOT / "include" / "tsc"
+CLI = ROOT / "apps" / "tsc_cli.cpp"
 BUILD = Path(os.environ.get("TSC_BUILD_DIR", ROOT / "build" / "mutation"))
 TEST_TIMEOUT_S = 900
 
@@ -39,6 +40,9 @@ MUTANTS = [
     (SRC / "safety_guard.cpp", "if (shown_[g] == Signal::Yellow && now - since_[g] >= yellow_[g])",
      "if (shown_[g] == Signal::Yellow)"),
     (SRC / "safety_guard.cpp", "  if (!failsafe_) enter_failsafe(now, reason);", "  (void)now, (void)reason;"),
+    (SRC / "safety_guard.cpp", "enter_failsafe(safe_now, *why);", "enter_failsafe(now, *why);"),
+    (SRC / "safety_guard.cpp", "  now = trusted_time(now);\n", ""),
+    (SRC / "safety_guard.cpp", "  last_ = safe_now;", "  last_ = now;"),
     # ---- actuated controller logic
     (SRC / "actuated.cpp", "if (e.on && !serving) calls_[p] = true;", "if (e.on && (serving || !serving)) calls_[p] = true;"),
     (SRC / "actuated.cpp", "if (green_elapsed < cfg.min_green) return std::nullopt;",
@@ -82,6 +86,10 @@ MUTANTS = [
     (SRC / "detector_monitor.cpp", "  if (!cfg_.enabled) return fresh;\n", ""),
     (SRC / "detector_monitor.cpp", "  if (s.fault) return false;\n", ""),
     (SRC / "detector_monitor.cpp", "if (e.t < s.last_change) {", "if (false) {"),
+    (SRC / "detector_monitor.cpp",
+     "if (s.fault && (kind != FaultKind::FeedLost || *s.fault == FaultKind::FeedLost)) return;",
+     "if (s.fault) return;"),
+    (SRC / "detector_monitor.cpp", " || *s.fault == FaultKind::FeedLost", ""),
     # ---- multi-threaded runtime and queue
     (SRC / "runtime.cpp", "[&](const DetectorEvent& e) { return e.t <= next; });",
      "[&](const DetectorEvent& e) { return e.t < next; });"),
@@ -109,6 +117,25 @@ MUTANTS = [
      "y[p] += d.flow_vph / (d.lanes * d.saturation_vphpl);"),
     (SRC / "auditor.cpp", "if (!failsafe && lasted < t.min_green)", "if (!failsafe && lasted < 0)"),
     (SRC / "auditor.cpp", "now - before[h].entered >= timing(h).all_red;", "true;"),
+    # ---- real replay entry point, including Windows CSV exports and strict input checks
+    (CLI, "if (!line.empty() && line.back() == '\\r') line.pop_back();", "// keep CR"),
+    (CLI, 'fields[2] != "0" && fields[2] != "1"', 'false'),
+    (CLI, 'csv_fields(line) != std::array<std::string, 3>{"t_s", "detector_id", "on"}', 'false'),
+    (CLI, "used != input.size() || ", ""),
+    (CLI, " || seconds < 0", ""),
+    (CLI, "milliseconds >= exclusive_limit", "(milliseconds >= exclusive_limit && false)"),
+    # Removing only the extra-column guard is equivalent: the uncut final field still
+    # fails the 0/1 check. Model an actually lossy parser that ignores trailing columns.
+    (CLI, """  if (second == std::string::npos || line.find(',', second + 1) != std::string::npos) {
+    throw std::runtime_error("expected exactly three fields: t_s,detector_id,on");
+  }
+  return {trim(line.substr(0, first)), trim(line.substr(first + 1, second - first - 1)),
+          trim(line.substr(second + 1))};""",
+     """  if (second == std::string::npos) {
+    throw std::runtime_error("expected exactly three fields: t_s,detector_id,on");
+  }
+  return {trim(line.substr(0, first)), trim(line.substr(first + 1, second - first - 1)),
+          trim(line.substr(second + 1, line.find(',', second + 1) - second - 1))};"""),
 ]
 
 
@@ -117,15 +144,26 @@ def sh(cmd, **kw):
 
 
 def build():
-    return sh(["cmake", "--build", BUILD, "--target", "tsc_tests"])
+    return sh(["cmake", "--build", BUILD, "--target", "tsc_tests", "tsc", "-j", "2"])
 
 
 def tests():
-    try:
-        r = sh([BUILD / "tsc_tests", "--gtest_brief=1", "--gtest_fail_fast"], timeout=TEST_TIMEOUT_S)
-        return r.returncode, ""
-    except subprocess.TimeoutExpired:
-        return -1, " (timeout)"
+    commands = [
+        [BUILD / "tsc_tests", "--gtest_brief=1", "--gtest_fail_fast"],
+        [sys.executable, ROOT / "tests" / "test_cli.py", "--binary", BUILD / "tsc",
+         "--config", ROOT / "configs" / "intersection.json"],
+    ]
+    for cmd in commands:
+        try:
+            r = sh(cmd, timeout=TEST_TIMEOUT_S)
+        except subprocess.TimeoutExpired:
+            return -1, " (timeout)"
+        if r.returncode:
+            output = r.stdout + r.stderr
+            assert "[  FAILED  ]" in output or "FAILED (failures=" in output, (
+                "test process failed without an assertion; not a valid mutation kill:\n" + output[-3000:])
+            return r.returncode, ""
+    return 0, ""
 
 
 def main():
@@ -143,18 +181,21 @@ def main():
     escaped = 0
     start = time.time()
     for f, old, new in MUTANTS:
-        text = f.read_text(encoding="utf-8")
-        f.write_text(text.replace(old, new), encoding="utf-8")
+        original = f.read_bytes()
+        text = original.decode("utf-8")
+        f.write_bytes(text.replace(old, new).encode("utf-8"))
         try:
             b = build()
             assert b.returncode == 0, f"mutant does not compile, so it proves nothing: {f.name}: {old[:70]}\n{b.stdout[-2000:]}"
             code, note = tests()
         finally:
-            f.write_text(text, encoding="utf-8")
+            f.write_bytes(original)
+            assert f.read_bytes() == original, f"source restoration failed: {f}"
         killed = code != 0
         escaped += not killed
         print(f"{'killed ' if killed else 'ESCAPED'}{note}  {f.name}: {old.strip()[:80]}", flush=True)
-    build()  # leave the build tree matching the restored sources
+    restored = build()  # leave the build tree matching the restored sources
+    assert restored.returncode == 0, "restored code does not build:\n" + restored.stdout[-3000:]
     print(f"{len(MUTANTS) - escaped}/{len(MUTANTS)} mutants killed ({time.time() - start:.0f} s)")
     sys.exit(1 if escaped else 0)
 

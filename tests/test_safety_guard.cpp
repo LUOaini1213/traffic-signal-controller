@@ -158,6 +158,97 @@ TEST_F(GuardAtNsGreen, RequestedFailSafeClearsThroughYellow) {
   EXPECT_EQ(guard.refusals(), 0u);  // a request is not a refusal
 }
 
+TEST_F(GuardAtNsGreen, BackwardApplyCannotBackdateFailSafeYellow) {
+  ASSERT_EQ(guard.apply(s(20), only({G_NT, G_ST}, G)), only({G_NT, G_ST}, G));
+  EXPECT_EQ(guard.apply(s(1), only({G_NT, G_ST}, G)), only({G_NT, G_ST}, Y));
+  EXPECT_EQ(guard.failsafe_reason(), "time did not advance");
+  EXPECT_EQ(guard.refusals(), 1u);
+  EXPECT_EQ(guard.apply(s(20.5), only({G_NT, G_ST}, G)), only({G_NT, G_ST}, Y));
+  EXPECT_EQ(guard.apply(s(22.5), kAllRed), only({G_NT, G_ST}, Y));
+  EXPECT_EQ(guard.apply(s(23), kAllRed), kAllRed);
+}
+
+TEST_F(GuardAtNsGreen, DuplicateApplyStillRequiresAFullFailSafeYellow) {
+  guard.apply(s(20), only({G_NT, G_ST}, G));
+  EXPECT_EQ(guard.apply(s(20), only({G_NT, G_ST}, G)), only({G_NT, G_ST}, Y));
+  EXPECT_EQ(guard.failsafe_reason(), "time did not advance");
+  EXPECT_EQ(guard.apply(s(20), kAllRed), only({G_NT, G_ST}, Y));
+  EXPECT_EQ(guard.apply(s(22.5), kAllRed), only({G_NT, G_ST}, Y));
+  EXPECT_EQ(guard.apply(s(23), kAllRed), kAllRed);
+  EXPECT_EQ(guard.refusals(), 1u);
+}
+
+TEST_F(GuardAtNsGreen, BackwardRequestCannotBackdateFailSafeYellow) {
+  guard.apply(s(20), only({G_NT, G_ST}, G));
+  guard.request_failsafe(s(1), "lost feed");
+  EXPECT_EQ(guard.displayed(), only({G_NT, G_ST}, Y));
+  EXPECT_EQ(guard.apply(s(20.5), kAllRed), only({G_NT, G_ST}, Y));
+  EXPECT_EQ(guard.apply(s(22.5), kAllRed), only({G_NT, G_ST}, Y));
+  EXPECT_EQ(guard.apply(s(23), kAllRed), kAllRed);
+  EXPECT_EQ(guard.failsafe_reason(), "lost feed");
+  EXPECT_EQ(guard.refusals(), 0u);
+}
+
+TEST_F(GuardAtNsGreen, FailSafeClockNeverRegressesAfterRequestsOrApplies) {
+  guard.request_failsafe(s(20), "lost feed");
+  EXPECT_TRUE(guard.check(s(19), only({G_NT, G_ST}, Y)).has_value());
+  // Pipeline requests fail-safe and applies its command at the same timestamp.
+  EXPECT_EQ(guard.apply(s(20), only({G_NT, G_ST}, G)), only({G_NT, G_ST}, Y));
+  guard.request_failsafe(s(21), "later reason");
+  guard.request_failsafe(s(21), "duplicate reason");
+  guard.request_failsafe(s(1), "stale reason");
+  EXPECT_TRUE(guard.check(s(20.5), only({G_NT, G_ST}, Y)).has_value());
+  EXPECT_EQ(guard.apply(s(1), kAllRed), only({G_NT, G_ST}, Y));
+  EXPECT_TRUE(guard.check(s(20.5), only({G_NT, G_ST}, Y)).has_value());
+  EXPECT_EQ(guard.apply(s(22.5), kAllRed), only({G_NT, G_ST}, Y));
+  EXPECT_EQ(guard.apply(s(23), kAllRed), kAllRed);
+  EXPECT_EQ(guard.failsafe_reason(), "lost feed");
+  EXPECT_EQ(guard.refusals(), 0u);
+}
+
+TEST_F(GuardAtNsGreen, BackwardApplyPreservesAnExistingYellowStart) {
+  guard.apply(s(12), only({G_NT, G_ST}, Y));
+  guard.apply(s(14), only({G_NT, G_ST}, Y));
+  EXPECT_EQ(guard.apply(s(1), kAllRed), only({G_NT, G_ST}, Y));
+  EXPECT_EQ(guard.apply(s(14.5), kAllRed), only({G_NT, G_ST}, Y));
+  EXPECT_EQ(guard.apply(s(15), kAllRed), kAllRed);
+  EXPECT_EQ(guard.refusals(), 1u);
+}
+
+TEST_F(GuardAtNsGreen, BackwardRequestPreservesAnExistingYellowStart) {
+  guard.apply(s(12), only({G_NT, G_ST}, Y));
+  guard.apply(s(14), only({G_NT, G_ST}, Y));
+  guard.request_failsafe(s(1), "lost feed");
+  EXPECT_EQ(guard.displayed(), only({G_NT, G_ST}, Y));
+  EXPECT_EQ(guard.apply(s(14.5), kAllRed), only({G_NT, G_ST}, Y));
+  EXPECT_EQ(guard.apply(s(15), kAllRed), kAllRed);
+  EXPECT_EQ(guard.refusals(), 0u);
+}
+
+TEST(SafetyGuard, ApplyBeforeStartCannotMoveItsClockBeforeStart) {
+  SafetyGuard guard(repo_config(), s(10));
+  EXPECT_EQ(guard.apply(s(1), kAllRed), kAllRed);
+  EXPECT_TRUE(guard.failsafe());
+  EXPECT_EQ(guard.failsafe_reason(), "time did not advance");
+  EXPECT_TRUE(guard.check(s(9), kAllRed).has_value());
+  EXPECT_EQ(guard.apply(s(1), only({G_NT, G_ST}, G)), kAllRed);
+  EXPECT_TRUE(guard.check(s(9), kAllRed).has_value());
+  EXPECT_EQ(guard.apply(s(20), only({G_NT, G_ST}, G)), kAllRed);
+  EXPECT_EQ(guard.refusals(), 1u);
+}
+
+TEST(SafetyGuard, RequestBeforeStartCannotMoveItsClockBeforeStart) {
+  SafetyGuard guard(repo_config(), s(10));
+  guard.request_failsafe(s(1), "lost feed before start");
+  EXPECT_EQ(guard.displayed(), kAllRed);
+  EXPECT_TRUE(guard.failsafe());
+  EXPECT_TRUE(guard.check(s(9), kAllRed).has_value());
+  EXPECT_EQ(guard.apply(s(1), only({G_NT, G_ST}, G)), kAllRed);
+  EXPECT_TRUE(guard.check(s(9), kAllRed).has_value());
+  EXPECT_EQ(guard.apply(s(20), only({G_NT, G_ST}, G)), kAllRed);
+  EXPECT_EQ(guard.refusals(), 0u);
+}
+
 TEST(SafetyGuard, RefusesConflictingGroupsReleasedInTheSameTick) {
   // Each group on its own is a legal red -> green after the start-up all-red; only the
   // pairwise conflict check can catch this.
