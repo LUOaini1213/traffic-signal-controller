@@ -229,6 +229,76 @@ TEST(Faults, LostFeedsCountTowardsFailSafe) {
   EXPECT_TRUE(d.ctl().wants_failsafe());
 }
 
+TEST(Faults, LostFeedsAfterNightTrafficStillCountEveryDisconnectedDetector) {
+  const Config cfg = repo_config();
+  Driver d(cfg);
+  for (double t = 1; t < 900; t += 20) {
+    d.pulse(t, "N_1");
+    d.pulse(t + 3, "S_1");
+  }
+  d.run_until(900);
+  const auto& monitor = d.ctl().monitor();
+  ASSERT_EQ(monitor.faulty_count(FaultKind::StuckOff), 6u);
+  ASSERT_EQ(monitor.faults().size(), 6u);
+  ASSERT_FALSE(d.last().failsafe);
+
+  // Both busy approaches lose their feeds after six quiet neighbouring loops have
+  // already latched stuck-off. All eight disconnected loops must now count.
+  for (const char* id : {"N_0", "N_1", "N_2", "N_2s"}) {
+    d.ctl().detector_feed_lost(cfg.detector_index(id), s(900.5));
+  }
+  EXPECT_EQ(monitor.faulty_count(FaultKind::FeedLost), 4u);
+  EXPECT_FALSE(d.ctl().wants_failsafe());  // exactly max_faulty
+  for (const char* id : {"S_0", "S_1", "S_2", "S_2s"}) {
+    d.ctl().detector_feed_lost(cfg.detector_index(id), s(900.5));
+  }
+  EXPECT_EQ(monitor.faulty_count(), 8u);
+  EXPECT_EQ(monitor.faulty_count(FaultKind::StuckOff), 0u);
+  EXPECT_EQ(monitor.faulty_count(FaultKind::FeedLost), 8u);
+  EXPECT_TRUE(d.ctl().wants_failsafe());
+  d.run_until(900.5);
+  EXPECT_TRUE(d.last().failsafe);
+  d.run_until(904);
+  EXPECT_EQ(d.last().displayed, SignalVector(cfg.groups.size(), Signal::Red));
+  EXPECT_EQ(d.pipe().guard().failsafe_reason(), "too many faulty detectors");
+
+  ASSERT_EQ(monitor.faults().size(), 14u);  // six initial faults and eight lost feeds
+  for (std::size_t i = 0; i < monitor.faults().size(); ++i) {
+    EXPECT_EQ(monitor.faults()[i].kind, i < 6 ? FaultKind::StuckOff : FaultKind::FeedLost);
+    EXPECT_EQ(monitor.faults()[i].at, i < 6 ? s(900) : s(900.5));
+  }
+}
+
+TEST(DetectorMonitor, FeedLossUpgradesLatchedFaultWithoutDuplicateOrDowngrade) {
+  for (const FaultKind initial : {FaultKind::StuckOff, FaultKind::StuckOn}) {
+    SCOPED_TRACE(to_string(initial));
+    DetectorMonitor monitor(repo_config(), 0);
+    monitor.force_fault(0, initial, s(10));
+    monitor.force_fault(0, initial, s(15));
+    ASSERT_EQ(monitor.faults().size(), 1u);
+    monitor.force_fault(0, FaultKind::FeedLost, s(20));
+    monitor.force_fault(0, FaultKind::FeedLost, s(25));
+    monitor.force_fault(0, FaultKind::StuckOn, s(30));
+    monitor.force_fault(0, FaultKind::StuckOff, s(35));
+
+    EXPECT_EQ(monitor.faulty_count(), 1u);
+    EXPECT_EQ(monitor.faulty_count(FaultKind::FeedLost), 1u);
+    EXPECT_EQ(monitor.faulty_count(FaultKind::StuckOn), 0u);
+    EXPECT_EQ(monitor.faulty_count(FaultKind::StuckOff), 0u);
+    EXPECT_TRUE(monitor.faulty(0));
+    EXPECT_FALSE(monitor.update({s(40), 0, true}));  // the upgraded fault stays latched
+    EXPECT_FALSE(monitor.on(0));
+    EXPECT_TRUE(monitor.check(s(1000)).empty());
+    ASSERT_EQ(monitor.faults().size(), 2u);
+    EXPECT_EQ(monitor.faults()[0].detector, 0u);
+    EXPECT_EQ(monitor.faults()[0].kind, initial);
+    EXPECT_EQ(monitor.faults()[0].at, s(10));
+    EXPECT_EQ(monitor.faults()[1].detector, 0u);
+    EXPECT_EQ(monitor.faults()[1].kind, FaultKind::FeedLost);
+    EXPECT_EQ(monitor.faults()[1].at, s(20));
+  }
+}
+
 TEST(DetectorMonitor, StuckOffNeedsTheFullSilentTime) {
   const Config cfg = repo_config();
   DetectorMonitor m(cfg, 0);
