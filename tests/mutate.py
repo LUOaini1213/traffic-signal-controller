@@ -124,7 +124,18 @@ MUTANTS = [
     (CLI, "used != input.size() || ", ""),
     (CLI, " || seconds < 0", ""),
     (CLI, "milliseconds >= exclusive_limit", "(milliseconds >= exclusive_limit && false)"),
-    (CLI, "line.find(',', second + 1) != std::string::npos", "false"),
+    # Removing only the extra-column guard is equivalent: the uncut final field still
+    # fails the 0/1 check. Model an actually lossy parser that ignores trailing columns.
+    (CLI, """  if (second == std::string::npos || line.find(',', second + 1) != std::string::npos) {
+    throw std::runtime_error("expected exactly three fields: t_s,detector_id,on");
+  }
+  return {trim(line.substr(0, first)), trim(line.substr(first + 1, second - first - 1)),
+          trim(line.substr(second + 1))};""",
+     """  if (second == std::string::npos) {
+    throw std::runtime_error("expected exactly three fields: t_s,detector_id,on");
+  }
+  return {trim(line.substr(0, first)), trim(line.substr(first + 1, second - first - 1)),
+          trim(line.substr(second + 1, line.find(',', second + 1) - second - 1))};"""),
 ]
 
 
