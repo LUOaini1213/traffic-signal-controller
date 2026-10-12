@@ -91,4 +91,9 @@ if(TSC_BUILD_TESTS)
   target_compile_definitions(tsc_tests PRIVATE TSC_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
   include(GoogleTest)
   gtest_discover_tests(tsc_tests DISCOVERY_TIMEOUT 60)
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  add_test(NAME ReplayCli
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_cli.py
+      --binary $<TARGET_FILE:tsc> --config ${CMAKE_CURRENT_SOURCE_DIR}/configs/intersection.json)
+  set_tests_properties(ReplayCli PROPERTIES TIMEOUT 120)
 endif()

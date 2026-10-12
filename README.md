@@ -25,7 +25,8 @@ controller.
   for longer than `stuck_off_s` while the other loops *of its own approach* keep seeing traffic,
   is declared faulty; its events are ignored and its phase falls back to recall. A stuck-off
   loop only affects its own phase. More than `max_faulty` loops that are stuck on or whose
-  feed is lost sends the junction to fail-safe.
+  feed is lost sends the junction to fail-safe. A later lost feed upgrades an existing
+  stuck-on/off fault, preserving its history and counting each disconnected loop once.
 * **Concurrent detector ingestion.** One producer thread per approach feeds detector events
   through a thread-safe queue to the controller thread. The result does not depend on thread
   scheduling, including when a producer disconnects (see [Concurrency](#concurrency)).
@@ -97,6 +98,12 @@ restart clears it. The controller can also request fail-safe, which it does when
 `max_faulty` detectors are stuck on or have lost their feed. Stuck-off loops do not count: a
 silent loop only puts its own phase on recall (see [Detector faults](#detector-fault-stuck-off-loops-fall-back-to-recall)).
 
+If a timestamp goes backwards, the guard keeps the latest observed time as its timing floor.
+Both refused commands and explicit fail-safe requests use that floor: stale input cannot
+backdate a new yellow or rewind the clock. A request followed by `apply` at the same tick is
+supported. This protects the public guard interface; the normal runtime already emits
+monotonic controller ticks.
+
 The same rules are implemented a second time, separately, in `InvariantAuditor`, which checks
 a stream of displayed states after the fact. The tests use it to check the guard's output, and
 the SUMO harness runs it on the signal state SUMO reports every step, for every controller
@@ -127,7 +134,8 @@ queues are created before the producer threads start.
 
 ## Tests and checks
 
-94 GoogleTest tests (`tests/`), all run in every build type:
+105 GoogleTest tests plus 11 real-CLI regression groups (`tests/`), all run in every test
+build type. CTest reports 106 tasks because the CLI groups run as one Python test task:
 
 | Suite | What it pins down |
 |---|---|
@@ -139,6 +147,7 @@ queues are created before the producer threads start.
 | `Faults`, `DetectorMonitor` | stuck-on and stuck-off at exactly the threshold; silence judged against the loop's own approach; recall fallback (max and min); starvation when fault handling is off; fail-safe when too many loops are stuck on or lose their feed, never for stuck-off loops; night traffic on one road only does not send the junction to fail-safe; lost feeds; a quiet junction is not a fault |
 | `Property` | 2,000 random configs x random detector histories (bursts, long occupancies, duplicate edges, loops that stick on or go silent), fixed seed: the guard never refuses a controller command, the auditor finds nothing, and no called phase waits longer than one worst-case cycle. A second property feeds the guard 1,000 x 400 ticks of random commands and checks that what it displays is always safe and that it never blocks a command its own check accepts. |
 | `Concurrency`, `BlockingQueue` | four producer threads with random pauses give tick-for-tick the same signals as one thread (5 runs); a disconnecting producer becomes a lost feed at the tick after its last watermark, with the same output whichever order its messages arrive in; `stop()` unblocks producers stuck on a full queue; the producer contract is enforced; the queue loses nothing under 4 producers x 3 consumers |
+| `ReplayCli` | the real executable gives identical signal timelines and phase counts for LF, CRLF and UTF-8 BOM input; invalid headers, columns, detectors, booleans and times fail before simulation output |
 
 Other checks, all in `scripts/ci.sh`:
 
@@ -153,11 +162,13 @@ Other checks, all in `scripts/ci.sh`:
   was only visible once the harness itself ran under TSan.
 * **clang-tidy** with a small check set (`.clang-tidy`: bugprone, concurrency, performance and a
   few others) over the library, both tools and the tests, warnings as errors.
-* **Mutation check** (`tests/mutate.py`): 54 deliberate bugs, planted one at a time in the
+* **Mutation check** (`tests/mutate.py`): 66 deliberate bugs, planted one at a time in the
   safety guard, actuated logic, phase sequencing, fault monitor, threaded runtime, queue,
-  config validation, Webster and auditor code. For each one the script rebuilds, checks that
-  it compiles, and runs the suite; it first checks that the unmodified code passes. Result:
-  54/54 killed. One candidate mutant (weakening the conflict check from "non-red" to "green")
+  config validation, Webster, auditor and replay CLI code. For each one the script rebuilds
+  the test and CLI executables, checks compilation, and runs both suites; it first checks
+  that the unmodified code passes. Compilation or test-launch errors are not mutation kills;
+  the script requires a test assertion failure (or an explicitly reported timeout), and
+  restores the exact source bytes. One candidate mutant (weakening the conflict check from "non-red" to "green")
   turned out to be equivalent, because the transition rules already make a yellow next to a
   conflicting green unreachable; it was replaced by one that removes the check, and a test
   was added for two conflicting groups released in the same tick. Two mutants found in review
@@ -167,10 +178,10 @@ Other checks, all in `scripts/ci.sh`:
 ## Build and run
 
 Needs Linux (tested on Ubuntu 24.04 under WSL2) with g++ 13 or clang 18, CMake >= 3.25, Ninja,
-GoogleTest and nlohmann-json; SUMO 1.18 for the simulations.
+GoogleTest, nlohmann-json and Python 3 (CLI regressions); SUMO 1.18 for the simulations.
 
 ```bash
-sudo apt-get install g++ clang cmake ninja-build libgtest-dev libgmock-dev nlohmann-json3-dev clang-tidy
+sudo apt-get install g++ clang cmake ninja-build libgtest-dev libgmock-dev nlohmann-json3-dev clang-tidy python3
 sudo apt-get install sumo sumo-tools          # only for the SUMO parts
 
 scripts/ci.sh test        # Debug build with -Werror, all tests
@@ -194,6 +205,15 @@ build/debug/tsc replay   configs/intersection.json configs/example_events.csv 60
 build/debug/tsc webster  configs/intersection.json sim/generated/medium.demand.json
 ```
 
+Replay input is an unquoted three-column CSV with header `t_s,detector_id,on`. LF and CRLF
+line endings, an optional UTF-8 BOM, space/tab padding around fields, and blank data lines
+are accepted. `on` must be exactly `0` or `1`; unknown detectors, extra/missing columns and
+invalid headers are rejected with the filename and line number. `t_s` and `end_s` must be
+finite non-negative seconds that fit the integer millisecond clock; numeric suffixes and
+out-of-range values are rejected before any signals are printed. Times round to the nearest
+millisecond. Events are sorted by time (equal times keep input order) and applied at the
+first controller tick at or after their time; events after the requested horizon are not run.
+
 Reproducing every number below (SUMO dominates the run time; measured: 40.5 minutes on an
 8-thread laptop under WSL2, 8 runs in parallel; a single run took 13-177 s under that load):
 
@@ -205,6 +225,11 @@ python3 sim/analyze.py              # -> results/results.json, results/results.m
 ```
 
 ## Evaluation in SUMO
+
+The 280-run tables below are the committed historical experiment results, retained from
+before the October 2026 robustness review. They are not a new full experiment run of the
+review changes; the review's regression tests and short SUMO checks are recorded separately
+in [the review notes](docs/REVIEW_20261003.md).
 
 **Setup.** One four-arm junction built with `netconvert --lefthand` (500 m arms, 50 km/h; each
 approach has a near-side-turn + through lane, a through lane and a turn-across lane). Loops sit

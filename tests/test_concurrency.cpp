@@ -138,6 +138,7 @@ TEST(Concurrency, ClosedProducerIsALostFeedAndOthersCarryOn) {
   for (DetectorId d : {9u, 10u, 11u, 15u}) {
     EXPECT_TRUE(act.monitor().faulty(d)) << d;
   }
+  ASSERT_FALSE(act.monitor().faults().empty());
   EXPECT_EQ(act.monitor().faults()[0].kind, FaultKind::FeedLost);
   EXPECT_EQ(act.effective_recall(EW_R), Recall::Max);
   EXPECT_EQ(pipe.guard().refusals(), 0u);
@@ -199,6 +200,66 @@ TEST(Concurrency, ClosedProducerGivesTheSameResultWhateverTheArrivalOrder) {
   // The north turn-across vehicle at 5 s was seen before the feed died, so NS_right is served
   // at 17.0 s, before the fault at 30.5 s puts it on recall.
   EXPECT_EQ(expected[static_cast<std::size_t>(s(17) / cfg.tick)].displayed[G_NR], Signal::Green);
+}
+
+TEST(Concurrency, DisconnectAfterStuckOffEntersFailSafeAtTheNextTick) {
+  const Config cfg = repo_config();
+  const TimeMs last_feed = s(900), end = s(904);
+  for (const bool disconnected_first : {true, false}) {
+    SCOPED_TRACE(disconnected_first);
+    ControllerRuntime rt(cfg, std::make_unique<ActuatedController>(cfg, 0), 0, by_approach());
+    std::vector<ControllerRuntime::Producer> h;
+    for (std::size_t p = 0; p < 4; ++p) h.push_back(rt.producer(p));
+    auto north_south = [&] {
+      for (std::size_t p = 0; p < 2; ++p) {
+        const DetectorId detector = cfg.detector_index(p == 0 ? "N_1" : "S_1");
+        for (TimeMs t = p == 0 ? s(1) : s(4); t < last_feed; t += s(20)) {
+          h[p].emit({t, detector, true});
+          h[p].emit({t + cfg.tick, detector, false});
+        }
+        h[p].advance(last_feed);
+        h[p].close();
+      }
+    };
+    if (disconnected_first) north_south();
+    h[2].advance(end);
+    h[3].advance(end);
+    if (!disconnected_first) north_south();
+    // E/W vouch for the entire run before closing; they must not be marked lost
+    // during the N/S failure, regardless of the order those messages arrived.
+    h[2].close();
+    h[3].close();
+    std::vector<TickRecord> out;
+    while (auto r = rt.next_output()) out.push_back(std::move(*r));
+    const auto& pipe = rt.join();
+    const auto& monitor = dynamic_cast<const ActuatedController&>(pipe.controller()).monitor();
+
+    ASSERT_EQ(out.size(), static_cast<std::size_t>(end / cfg.tick) + 1);
+    EXPECT_EQ(out.back().t, end);
+    for (const auto& r : out) EXPECT_EQ(r.failsafe, r.t > last_feed) << r.t;
+    EXPECT_EQ(out.back().displayed, SignalVector(cfg.groups.size(), Signal::Red));
+    EXPECT_EQ(pipe.guard().failsafe_reason(), "too many faulty detectors");
+    EXPECT_EQ(pipe.guard().refusals(), 0u);
+    EXPECT_EQ(rt.stats().late_events, 0u);
+    EXPECT_EQ(monitor.faulty_count(), 8u);
+    EXPECT_EQ(monitor.faulty_count(FaultKind::FeedLost), 8u);
+    ASSERT_EQ(monitor.faults().size(), 14u);
+    std::vector<DetectorId> stuck_off, feed_lost;
+    for (const auto& fault : monitor.faults()) {
+      if (fault.kind == FaultKind::StuckOff) {
+        EXPECT_EQ(fault.at, last_feed);
+        stuck_off.push_back(fault.detector);
+      } else {
+        EXPECT_EQ(fault.kind, FaultKind::FeedLost);
+        EXPECT_EQ(fault.at, last_feed + cfg.tick);
+        feed_lost.push_back(fault.detector);
+      }
+    }
+    std::sort(stuck_off.begin(), stuck_off.end());
+    std::sort(feed_lost.begin(), feed_lost.end());
+    EXPECT_EQ(stuck_off, (std::vector<DetectorId>{0, 2, 3, 5, 12, 13}));
+    EXPECT_EQ(feed_lost, (std::vector<DetectorId>{0, 1, 2, 3, 4, 5, 12, 13}));
+  }
 }
 
 TEST(Concurrency, StopUnblocksEverything) {

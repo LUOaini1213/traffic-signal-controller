@@ -65,7 +65,9 @@ std::vector<DetectorFault> DetectorMonitor::check(TimeMs now) {
 
 void DetectorMonitor::force_fault(DetectorId d, FaultKind kind, TimeMs now) {
   State& s = state_.at(d);
-  if (s.fault) return;
+  // A confirmed disconnect supersedes an occupancy fault. Keep the fault latched,
+  // but record the stronger evidence once so fail-safe counts every lost feed.
+  if (s.fault && (kind != FaultKind::FeedLost || *s.fault == FaultKind::FeedLost)) return;
   s.fault = kind;
   log_.push_back({d, kind, now});
 }
