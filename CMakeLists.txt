@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.25)  # CMakePresets.json v6 needs 3.25 as well
 project(traffic_signal_controller LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)

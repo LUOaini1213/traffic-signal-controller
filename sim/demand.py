@@ -56,6 +56,7 @@ def write_demand_file(name: str) -> str:
                      # through group: lane 0 is shared with near-side turners, lane 1 is through only
                      "saturation_vphpl": cal["turn_across_vphpl"] if across else cal["through_group_vphpl"]}
     path = GENERATED / f"{name}.demand.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"scenario": name, "groups": groups}, indent=2), encoding="utf-8")
     return str(path)
 
