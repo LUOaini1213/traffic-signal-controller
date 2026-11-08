@@ -7,6 +7,15 @@ with a fixed-time plan and with SUMO's own actuated controller.
 This is a personal project (2026). It is a simulation study, not a certified or deployed
 controller.
 
+**Result in brief** (280 SUMO runs, 10 paired seeds per scenario, numbers from
+`results/results.json`): against a Webster fixed-time plan it cuts mean delay by 3.6 s/veh
+(16.0 %) at low demand and 3.6 s/veh (11.9 %) at asymmetric demand, but is 92.0 s/veh (30.3 %)
+worse at saturation, where every phase maxes out. Against SUMO's own actuated controller with
+the same detectors and call logic, no mean-delay difference is measurable in any of the 5
+scenarios. The independent auditor recorded 0 violations in all 280 runs. Limits: one simulated
+junction, synthetic Poisson demand, untuned max greens; the tables were produced at commit
+`85aea6d` and not re-run after the October 2026 review ([details](#evaluation-in-sumo)).
+
 ## What it does
 
 * **Actuated control.** Four phases in a fixed ring: north-south through, north-south turn-across
@@ -184,7 +193,7 @@ GoogleTest, nlohmann-json and Python 3 (CLI regressions); SUMO 1.18 for the simu
 sudo apt-get install g++ clang cmake ninja-build libgtest-dev libgmock-dev nlohmann-json3-dev clang-tidy python3
 sudo apt-get install sumo sumo-tools          # only for the SUMO parts
 
-scripts/ci.sh test        # Debug build with -Werror, all tests
+scripts/ci.sh test        # README number check, Debug build with -Werror, all tests, README CLI block
 scripts/ci.sh asan        # ASan + UBSan build, all tests
 scripts/ci.sh tsan        # TSan build (clang), all tests + short SUMO run of the TSan harness;
                           # may need: sudo sysctl vm.mmap_rnd_bits=28
@@ -202,8 +211,13 @@ Command-line tool:
 ```bash
 build/debug/tsc validate configs/intersection.json
 build/debug/tsc replay   configs/intersection.json configs/example_events.csv 60
+python3 sim/demand.py    # writes sim/generated/<scenario>.demand.json (git-ignored)
 build/debug/tsc webster  configs/intersection.json sim/generated/medium.demand.json
 ```
+
+`scripts/ci.sh test` runs this block verbatim (`scripts/check_readme_cli.py`) and also checks
+that `tsc webster` reproduces the cycle and green splits stored in `results/results.json` for all
+five scenarios.
 
 Replay input is an unquoted three-column CSV with header `t_s,detector_id,on`. LF and CRLF
 line endings, an optional UTF-8 BOM, space/tab padding around fields, and blank data lines
@@ -230,6 +244,17 @@ The 280-run tables below are the committed historical experiment results, retain
 before the October 2026 robustness review. They are not a new full experiment run of the
 review changes; the review's regression tests and short SUMO checks are recorded separately
 in [the review notes](docs/REVIEW_20261003.md).
+
+Provenance: `results/results.json` and `results/results.md` were last written by commit
+`85aea6d` (2026-09-28). Since then the experiment harness (`apps/tsc_sumo.cpp`), the controller
+(`src/actuated.cpp`, `src/sequencer.cpp`, `src/runtime.cpp`, `src/pipeline.cpp`) and the
+`sim/` scripts used for the study are unchanged. What did change: replay CSV parsing in the CLI,
+`DetectorMonitor::force_fault` (a lost feed now upgrades an existing stuck-on/off fault), and
+`SafetyGuard` clamping repeated or backward timestamps. The study has not been re-run on the
+current code, so whether those changes alter any number is untested. The numbers in this
+README are checked against `results/results.json` by `scripts/check_readme_numbers.py`
+(main, paired-difference and safety tables, and the summary at the top; the fault and
+ablation tables are not covered).
 
 **Setup.** One four-arm junction built with `netconvert --lefthand` (500 m arms, 50 km/h; each
 approach has a near-side-turn + through lane, a through lane and a turn-across lane). Loops sit
@@ -316,7 +341,9 @@ What this shows:
   0.9 s/veh (3 %) at medium demand. At high demand there is no measurable difference, and at
   saturation it loses clearly (below).
 * **Against SUMO's own actuated controller set up the same way there is no measurable
-  difference** in any scenario: every interval includes zero. This controller is not a better
+  difference in mean delay** in any scenario: every delay interval includes zero. The p95
+  queue is slightly longer at medium demand (+0.5 [0.1, 0.9] veh); in the other scenarios its
+  interval also includes zero. This controller is not a better
   actuation algorithm than SUMO's; with the same detectors, gaps and call logic both behave
   alike.
 * **Phase skipping is where the gain over a plain actuated controller comes from**: against

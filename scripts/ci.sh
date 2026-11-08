@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # One entry point for CI and for local runs, so both execute exactly the same commands.
 #
-#   scripts/ci.sh test       gcc Debug build (-Werror) + full test suite
+#   scripts/ci.sh test       README number check + gcc Debug build (-Werror) + full test suite
+#                            + README command-line block run verbatim
 #   scripts/ci.sh asan       ASan + UBSan build + full test suite
 #   scripts/ci.sh tsan       TSan build (clang) + full test suite + short SUMO run of the TSan harness
 #   scripts/ci.sh tidy       clang-tidy over src/, apps/ and tests/
@@ -28,9 +29,12 @@ run_tests() {  # preset
 }
 
 job_test() {
+  python3 scripts/check_readme_numbers.py     # README tables and summary vs results/results.json
   configure_build debug
   run_tests debug
-  "$BUILD_ROOT/debug/tsc" validate configs/intersection.json
+  # Runs the README's command-line block verbatim (validate, replay of the example CSV,
+  # demand generation, webster) and pins every scenario's Webster plan to results.json.
+  python3 scripts/check_readme_cli.py --build-dir "$BUILD_ROOT/debug"
 }
 
 job_asan() {
